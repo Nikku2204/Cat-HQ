@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M1 — Litter-Robot adapter** |
+| Current milestone | **M3 — data layer** (M1 lacks only the clean-cycle test, scheduled 2026-07-06; M2 accepted) |
 | Last updated | 2026-07-05 |
-| Blockers | M1 needs `WHISKER_EMAIL`/`WHISKER_PASSWORD` in `.env` (owner watches first cloud login). Remaining fill-ins: cat names, Tapo model, timezone. Hardware purchase pending (dev on owner's Mac meanwhile — M0 accepted there; re-verify compose on the home box when it arrives). |
+| Blockers | M1 clean-cycle test needs owner watching the LR4 (tomorrow). Adversarial-review findings for M1/M2 adapters pending application. Remaining fill-in: Tapo model. Hardware purchase pending (dev on owner's Mac meanwhile — re-verify compose on the home box when it arrives). |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -26,17 +26,29 @@ python-dotenv parse them inconsistently (empty value + comment ⇒ comment
 becomes the value).*
 
 ### M1 — Litter-Robot adapter (est. 6–10h)
-- [ ] Adapter wrapping pylitterbot: state, start-clean command, activity history
-- [ ] Endpoints: `GET /devices/litterrobot`, `POST /devices/litterrobot/clean`
+- [x] Adapter wrapping pylitterbot: state, start-clean command, activity history
+- [x] Endpoints: `GET /devices/litterrobot`, `POST /devices/litterrobot/clean`
 
 **Accept:** live drawer/cycle status from the real LR4; a clean cycle triggers from an HTTP call.
+*Progress 2026-07-05: live state + activity history verified against the
+real LR4 (pylitterbot==2025.6.1, poll-only, websocket deferred to M3/M4).
+Clean-cycle trigger implemented but NOT yet fired — owner wants to watch;
+scheduled 2026-07-06. Milestone accepted only after that passes.*
 
-### M2 — Petlibro adapter (est. 15–25h) ⚠ highest risk
-- [ ] Dedicated Petlibro account created and device shared to it
-- [ ] Client ported from the HA integration; auth + session handling
-- [ ] State, manual feed, feed log endpoints
+### M2 — Petlibro adapter (est. 15–25h) ⚠ highest risk ✅ 2026-07-05
+- [x] Dedicated Petlibro account created and device shared to it
+- [x] Client ported from the HA integration; auth + session handling
+- [x] State, manual feed, feed log endpoints
 
 **Accept:** a manual feed dispenses the intended portions via HTTP call; feed log matches the vendor app.
+*Accepted 2026-07-05: client ported from jjjonesjr33/petlibro (GPL-3.0,
+attribution in adapters/petlibro/client.py) with hardened single-session
+handling. Live PLAF103 ("chutku food", shared account, share_state=1):
+state + 7-day feed log served; manual feed of 1 portion dispensed via
+POST and confirmed as GRAIN_OUTPUT_SUCCESS in the log ~84s later.
+Known quirks: battery_state="low"/pct=0 on mains (don't alert on this at
+M8); enableFeedingPlan=false in realInfo despite active on-device
+schedule — flag may live in baseInfo, fix queued with review findings.*
 
 ### M3 — Data layer (est. 8–12h)
 - [ ] SQLite schema: events, state snapshots, notification ledger
