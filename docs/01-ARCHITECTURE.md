@@ -54,7 +54,7 @@ cat-hq/
 │   └── app/
 │       ├── main.py            # FastAPI app, lifespan starts pollers
 │       ├── config.py          # env-driven settings
-│       ├── adapters/          # base.py, litterrobot.py, petlibro.py, tapo.py
+│       ├── adapters/          # base.py, litterrobot.py, petlibro/ (GPL client port), tapo.py
 │       ├── pollers.py
 │       ├── models.py          # SQLAlchemy + pydantic schemas
 │       ├── api/               # routes: devices, events, actions, push

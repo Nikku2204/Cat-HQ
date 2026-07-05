@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request
 
 from .adapters.base import DeviceAdapter
 from .adapters.litterrobot import LitterRobotAdapter
+from .adapters.petlibro import PetlibroAdapter
 from .api import devices
 from .config import get_settings
 
@@ -31,6 +32,18 @@ async def lifespan(app: FastAPI):
         await litterrobot.start()
     else:
         logger.info("litterrobot adapter not configured (no WHISKER_* in .env)")
+    if settings.petlibro_email and settings.petlibro_password:
+        # NB: Petlibro allows ONE session per account — this login kicks any
+        # phone app logged into the same account. Use the dedicated account.
+        feeder = PetlibroAdapter(
+            email=settings.petlibro_email,
+            password=settings.petlibro_password,
+            tz=settings.tz,
+        )
+        adapters["feeder"] = feeder
+        await feeder.start()
+    else:
+        logger.info("feeder adapter not configured (no PETLIBRO_* in .env)")
     app.state.adapters = adapters
     yield
     for adapter in adapters.values():

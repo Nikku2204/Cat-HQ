@@ -10,10 +10,11 @@ dependencies = [
     # Exact-pinned: reverse-engineered API, breakage arrives via releases.
     # Floor is 2025.3.2 (older 2025.x have 403/404 regressions). Pulls aiohttp.
     "pylitterbot==2025.6.1",
+    # Direct dep for the ported Petlibro client (adapters/petlibro/, M2).
+    "aiohttp>=3.9,<4",
 ]
 
 # Arriving in later milestones (keep Dockerfile dep layer in sync):
-#   M2: aiohttp direct dep   (ported Petlibro client)
 #   M3: sqlalchemy, aiosqlite
 #   M8: pywebpush
 
