@@ -8,7 +8,8 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     "fastapi>=0.115,<1" \
     "uvicorn[standard]>=0.30,<1" \
-    "pydantic-settings>=2.4,<3"
+    "pydantic-settings>=2.4,<3" \
+    "pylitterbot==2025.6.1"
 
 COPY pyproject.toml ./
 COPY app ./app

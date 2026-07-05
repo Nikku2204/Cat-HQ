@@ -1,18 +1,44 @@
-"""Cat HQ backend — M0: app skeleton + /health.
+"""Cat HQ backend — M1: app skeleton, /health, Litter-Robot adapter.
 
-Later milestones hang off this file: a lifespan() handler will start the
-device pollers (M3) and the WebSocket broadcaster (M4).
+The lifespan handler owns adapter lifecycles. M3 adds the SQLite pollers
+here, M4 the WebSocket broadcaster.
 """
+import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
+from .adapters.base import DeviceAdapter
+from .adapters.litterrobot import LitterRobotAdapter
+from .api import devices
 from .config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 STARTED_AT = datetime.now(timezone.utc)
 
-app = FastAPI(title=settings.app_name, version=settings.version)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    adapters: dict[str, DeviceAdapter] = {}
+    if settings.whisker_email and settings.whisker_password:
+        litterrobot = LitterRobotAdapter(
+            email=settings.whisker_email, password=settings.whisker_password
+        )
+        adapters["litterrobot"] = litterrobot
+        # start() never raises — connect failures land in the health badge.
+        await litterrobot.start()
+    else:
+        logger.info("litterrobot adapter not configured (no WHISKER_* in .env)")
+    app.state.adapters = adapters
+    yield
+    for adapter in adapters.values():
+        await adapter.stop()
+
+
+app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
+app.include_router(devices.router)
 
 
 @app.get("/")
@@ -21,13 +47,15 @@ def root():
 
 
 @app.get("/health")
-def health():
-    """M0 acceptance endpoint: build info + which integrations are configured.
+async def health(request: Request):
+    """M0 acceptance endpoint: build info + which integrations are configured
+    + per-adapter health badges.
 
     Deliberately unauthenticated — it exposes no secrets and is useful for
     uptime checks (and the docker-compose healthcheck).
     """
     now = datetime.now(timezone.utc)
+    adapters = getattr(request.app.state, "adapters", {})
     return {
         "status": "ok",
         "app": settings.app_name,
@@ -42,5 +70,9 @@ def health():
             "whisker": bool(settings.whisker_email),
             "petlibro": bool(settings.petlibro_email),
             "tapo": bool(settings.tapo_cam_ip),
+        },
+        "adapters": {
+            name: (await adapter.health()).model_dump(mode="json")
+            for name, adapter in adapters.items()
         },
     }
