@@ -8,8 +8,11 @@ litterrobot integration, 2026-07-05):
   `load_robots()` — the account-level helpers catch-and-log network errors
   internally, which would leave health() green over stale data (violates
   fail-loud, 01-ARCHITECTURE.md #4).
-- websocket push (`subscribe_for_updates=True`) is deliberately deferred to
-  M3/M4 when the app grows its own WebSocket broadcast channel.
+- M4: websocket push enabled (`subscribe_for_updates=True`, HA's pattern) —
+  EVENT_UPDATE fires on every cloud push AND every refresh(); we treat each
+  as a fresh state. The poll relaxes to a 5-min reconcile whose refresh()
+  stays loud, plus a best-effort load_robots(subscribe_for_updates=True) to
+  re-establish dropped subscriptions (exactly what HA does per cycle).
 
 Error policy (hardened after adversarial review, 2026-07-05):
 - pylitterbot leaks raw botocore exceptions on Cognito paths: BotoCoreError
@@ -43,12 +46,13 @@ from botocore.exceptions import ClientError as CognitoClientError
 from pylitterbot import Account, LitterRobot4
 from pylitterbot.enums import LitterBoxStatus
 from pylitterbot.exceptions import LitterRobotException, LitterRobotLoginException
+from pylitterbot.robot import EVENT_UPDATE
 
 from .base import AdapterHealth, Command, DeviceAdapter, DeviceState, HealthStatus
 
 logger = logging.getLogger(__name__)
 
-POLL_INTERVAL_S = 60          # CLAUDE.md cadence: ~60s with jitter
+POLL_INTERVAL_S = 300         # reconcile only — websocket push is primary (M4)
 MAX_BACKOFF_S = 600           # transient-failure cap; never tight-loop Whisker
 LOGIN_BACKOFF_CAP_S = 1800    # credential-failure retry cap (30 min)
 REQUEST_TIMEOUT_S = 45        # cap a single refresh so the loop stays alive
@@ -106,6 +110,8 @@ class LitterRobotAdapter(DeviceAdapter):
         self._password = password
         self._account: Account | None = None
         self._robot: LitterRobot4 | None = None
+        self._unsub_push: Any = None  # EVENT_UPDATE unsubscribe fn
+        self.on_refresh: Any = None   # set by main.py: hub notifier (M4)
         self._poll_task: asyncio.Task[None] | None = None
         # health bookkeeping (assembled on demand in health())
         self._status = HealthStatus.UNCONFIGURED
@@ -151,9 +157,13 @@ class LitterRobotAdapter(DeviceAdapter):
 
     async def _teardown_account(self) -> None:
         account, self._account, self._robot = self._account, None, None
+        if self._unsub_push is not None:
+            with suppress(Exception):
+                self._unsub_push()
+            self._unsub_push = None
         if account is not None:
             try:
-                await account.disconnect()  # closes the session it created
+                await account.disconnect()  # unsubscribes + closes its session
             except Exception as err:  # noqa: BLE001 — teardown must not raise
                 logger.warning("error disconnecting Whisker account: %s", err)
 
@@ -167,7 +177,7 @@ class LitterRobotAdapter(DeviceAdapter):
                     username=self._email,
                     password=self._password,
                     load_robots=True,
-                    subscribe_for_updates=False,  # M1: poll-only
+                    subscribe_for_updates=True,  # M4: push is primary
                 )
             # ignore_removed=True keeps only onboarded robots — never bind to
             # an RMA'd/de-onboarded unit that still lingers on the account.
@@ -192,8 +202,16 @@ class LitterRobotAdapter(DeviceAdapter):
                 "multiple Litter-Robot 4s on account; using %s", robots[0].serial
             )
         self._account, self._robot = account, robots[0]
+        # EVENT_UPDATE fires on every cloud push and every refresh(); the
+        # callback takes no args and its exceptions are swallowed by the
+        # library — keep it tiny.
+        self._unsub_push = robots[0].on(EVENT_UPDATE, self._on_push)
         self._login_failures = 0
         self._last_state_refresh = datetime.now(timezone.utc)
+
+    def _on_push(self) -> None:
+        """A push (or refresh) updated the robot object in place."""
+        self._mark_poll_success("push update")
 
     async def _poll_loop(self) -> None:
         delay: float = POLL_INTERVAL_S
@@ -205,6 +223,15 @@ class LitterRobotAdapter(DeviceAdapter):
                 else:
                     async with asyncio.timeout(REQUEST_TIMEOUT_S):
                         await self._robot.refresh()
+                    # HA re-runs this every cycle: re-establishes a dropped
+                    # websocket subscription. Best-effort — it swallows its
+                    # own errors, refresh() above already provided loudness.
+                    if self._account is not None:
+                        with suppress(Exception):
+                            async with asyncio.timeout(REQUEST_TIMEOUT_S):
+                                await self._account.load_robots(
+                                    subscribe_for_updates=True
+                                )
                 self._mark_poll_success("polled")
                 delay = POLL_INTERVAL_S
             except asyncio.CancelledError:
@@ -373,6 +400,7 @@ class LitterRobotAdapter(DeviceAdapter):
         self._last_cloud_success = now
         self._failures = 0
         self._login_failures = 0
+        self._notify()
 
     def _note_cloud_success(self) -> None:
         """A successful command/history call: proves connectivity, does NOT
@@ -382,6 +410,16 @@ class LitterRobotAdapter(DeviceAdapter):
     def _mark_failure(self, detail: str) -> None:
         self._failures += 1
         self._status, self._detail = HealthStatus.DEGRADED, detail
+        self._notify()
 
     def _set_error(self, detail: str) -> None:
         self._status, self._detail = HealthStatus.ERROR, detail
+        self._notify()
+
+    def _notify(self) -> None:
+        """Fan a refresh/health change out to the WebSocket hub (M4)."""
+        if self.on_refresh is not None:
+            try:
+                self.on_refresh()
+            except Exception:  # noqa: BLE001 — notification must never break polling
+                logger.exception("litterrobot on_refresh hook failed")

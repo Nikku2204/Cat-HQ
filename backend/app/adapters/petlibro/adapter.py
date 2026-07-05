@@ -66,6 +66,7 @@ class PetlibroAdapter(DeviceAdapter):
         self._static: dict[str, Any] = {}   # from device_list/baseInfo
         self._live: dict[str, Any] = {}     # last good poll: state attributes
         self._device_online = True
+        self.on_refresh: Any = None  # set by main.py: hub notifier (M4)
         self._poll_task: asyncio.Task[None] | None = None
         # health bookkeeping
         self._status = HealthStatus.UNCONFIGURED
@@ -372,6 +373,7 @@ class PetlibroAdapter(DeviceAdapter):
         self._last_cloud_success = now
         self._failures = 0
         self._login_failures = 0
+        self._notify()
 
     def _note_cloud_success(self) -> None:
         """A successful command/history call: proves connectivity, does NOT
@@ -381,6 +383,16 @@ class PetlibroAdapter(DeviceAdapter):
     def _mark_failure(self, detail: str) -> None:
         self._failures += 1
         self._status, self._detail = HealthStatus.DEGRADED, detail
+        self._notify()
 
     def _set_error(self, detail: str) -> None:
         self._status, self._detail = HealthStatus.ERROR, detail
+        self._notify()
+
+    def _notify(self) -> None:
+        """Fan a refresh/health change out to the WebSocket hub (M4)."""
+        if self.on_refresh is not None:
+            try:
+                self.on_refresh()
+            except Exception:  # noqa: BLE001 — notification must never break polling
+                logger.exception("feeder on_refresh hook failed")

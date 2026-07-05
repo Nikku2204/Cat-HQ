@@ -26,6 +26,23 @@ from ..adapters.petlibro.client import (
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
+
+@router.get("")
+async def all_devices(request: Request):
+    """Every configured device with health + state — same shape as the
+    WebSocket hello message (M4)."""
+    devices = {}
+    for device_id, adapter in request.app.state.adapters.items():
+        health = await adapter.health()
+        state = None
+        if adapter.connected:
+            state = (await adapter.get_state()).model_dump(mode="json")
+        devices[device_id] = {
+            "health": health.model_dump(mode="json"),
+            "state": state,
+        }
+    return {"devices": devices}
+
 # botocore errors leak from pylitterbot's Cognito token refresh — map them to
 # 502 like any other cloud failure instead of a raw 500.
 CLOUD_ERRORS = (

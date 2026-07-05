@@ -65,10 +65,19 @@ diff baseline seeds from the DB so changes across downtime are caught.
 GET /events supports device/type/since/until/limit.*
 
 ### M4 — Live API (est. 6–10h)
-- [ ] WebSocket channel broadcasting state changes
-- [ ] REST surface finalized for v1
+- [x] WebSocket channel broadcasting state changes
+- [x] REST surface finalized for v1
 
 **Accept:** two open clients both update within seconds of a real device change.
+*Progress 2026-07-05: /ws serves hello snapshot + per-refresh state
+broadcasts via a single-sender hub; LR4 websocket push ENABLED (HA
+pattern: subscribe on connect, re-subscribe via load_robots each 5-min
+reconcile) so litter changes propagate in seconds; feeder floor is its
+60s poll (Petlibro has no push). REST v1: /health, /devices,
+/devices/{litterrobot,feeder} + commands + histories, /events, /ws.
+Two-client plumbing test PASSED (both clients received the same live
+broadcast). Formal acceptance rides on the M1 clean-cycle test: watch
+RDY→CCP arrive on two open clients within seconds.*
 
 ### M5 — Dashboard v1 (est. 20–30h)
 - [ ] PWA shell (installable, offline-tolerant), auth token login
@@ -92,6 +101,12 @@ GET /events supports device/type/since/until/limit.*
 ### M8 — Push notifications (est. 10–15h)
 - [ ] Service worker + VAPID web push (iOS requires the PWA installed to home screen)
 - [ ] Alert rules: drawer full, feeder error/low food, device offline, cycle complete (configurable)
+- [ ] Owner-requested absence rules (2026-07-05; easy via the M3 event log):
+      no litter clean cycle in 24h; no feed dispensed in 12h; adapter/device
+      unreachable (health ERROR or device offline beyond a grace period)
+- [ ] NOTE: "backend itself is down" can't be pushed by a dead backend —
+      needs an external watchdog (e.g. free healthchecks.io ping from the
+      poller, or phone-side Tailscale status). Decide at M8.
 
 **Accept:** a locked phone receives a push for a real triggered rule.
 
