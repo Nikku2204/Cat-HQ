@@ -36,7 +36,9 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_S = 60          # CLAUDE.md cadence: ~60s with jitter
 MAX_BACKOFF_S = 600
-REQUEST_TIMEOUT_S = 45        # cap one whole poll pass
+LOGIN_BACKOFF_CAP_S = 1800    # credential-failure retry cap (30 min)
+REQUEST_TIMEOUT_S = 45        # cap a single command/history call
+POLL_PASS_TIMEOUT_S = 150     # a poll pass is up to 5 sequential requests
 ERROR_AFTER_FAILURES = 5
 
 GRANARY_PRODUCT_NAME = "Granary Smart Feeder"  # upstream dispatch key
@@ -68,24 +70,30 @@ class PetlibroAdapter(DeviceAdapter):
         # health bookkeeping
         self._status = HealthStatus.UNCONFIGURED
         self._detail = "not started"
-        self._last_success: datetime | None = None
+        self._last_state_refresh: datetime | None = None  # last good state poll
+        self._last_cloud_success: datetime | None = None  # any successful call
         self._failures = 0
+        self._login_failures = 0
 
     # ── lifecycle ────────────────────────────────────────────────────────
 
     async def start(self) -> None:
-        """Login, find the feeder, first poll, start the loop. Never raises."""
+        """Login, find the feeder, first poll, start the loop. NEVER raises —
+        even a rejected login retries (slowly, cooldown-guarded) so a
+        transient vendor-side login error can't require a manual restart."""
         self._status, self._detail = HealthStatus.DEGRADED, "connecting"
         try:
             await self._connect_and_poll()
-            self._mark_success("connected")
+            self._mark_poll_success("connected")
+        except asyncio.CancelledError:
+            raise
         except PetlibroAuthError as err:
-            self._set_error(f"login failed: {err}")
-            logger.error(
-                "Petlibro login failed — check PETLIBRO_EMAIL/PETLIBRO_PASSWORD"
+            self._login_failures = 1
+            self._set_error(
+                f"login rejected: {err} — check PETLIBRO_EMAIL/PETLIBRO_PASSWORD"
             )
-            return  # bad creds: no loop, no hammering
-        except TRANSIENT_ERRORS as err:
+            logger.error("Petlibro login rejected; will retry slowly: %s", err)
+        except Exception as err:  # noqa: BLE001 — startup must survive anything
             self._mark_failure(f"initial connect failed: {err}")
             logger.warning("Petlibro initial connect failed, will retry: %s", err)
         self._poll_task = asyncio.create_task(self._poll_loop(), name="feeder-poll")
@@ -102,7 +110,7 @@ class PetlibroAdapter(DeviceAdapter):
 
     async def _connect_and_poll(self) -> None:
         """Ensure login + device discovery, then one full state poll."""
-        async with asyncio.timeout(REQUEST_TIMEOUT_S):
+        async with asyncio.timeout(POLL_PASS_TIMEOUT_S):
             if not self._client.logged_in:
                 await self._client.login()
             if self._serial is None:
@@ -149,12 +157,15 @@ class PetlibroAdapter(DeviceAdapter):
         real = await self._client.real_info(self._serial)
         grain = await self._client.grain_status(self._serial)
         today = await self._client.feeding_plan_today(self._serial)
-        next_feed: dict[str, Any] | None = None
-        if real.get("enableFeedingPlan"):
-            plans = await self._client.feeding_plans(self._serial)
-            next_feed = self._compute_next_feed(plans)
+        # Always fetch plans: observed live that realInfo.enableFeedingPlan
+        # can be false while an on-device schedule is actively dispensing
+        # (the flag apparently lives elsewhere) — gating on it lost next_feed.
+        plans = await self._client.feeding_plans(self._serial)
+        next_feed = self._compute_next_feed(plans)
 
         electric = real.get("electricQuantity")
+        if not isinstance(electric, (int, float)):
+            electric = None  # upstream guards this too; API returns odd shapes
         self._device_online = bool(real.get("online", False))
         self._live = {
             **self._static,
@@ -220,15 +231,26 @@ class PetlibroAdapter(DeviceAdapter):
             await asyncio.sleep(delay * random.uniform(0.9, 1.1))
             try:
                 await self._connect_and_poll()
-                self._mark_success("polled")
+                self._mark_poll_success("polled")
                 delay = POLL_INTERVAL_S
             except PetlibroAuthError as err:
-                self._set_error(f"login failed: {err}")
-                logger.error(
-                    "Petlibro credentials rejected; poll loop stopped — "
-                    "fix .env and restart"
+                # Rejected login: keep retrying with escalating backoff (the
+                # client's cooldown also guards the vendor) — a transient
+                # vendor-side rejection must not permanently kill the loop,
+                # and true bad creds stay loudly visible in the badge.
+                self._login_failures += 1
+                self._set_error(
+                    f"login rejected ({self._login_failures}x): {err} — "
+                    "check PETLIBRO_EMAIL/PETLIBRO_PASSWORD"
                 )
-                return
+                delay = min(
+                    POLL_INTERVAL_S * 2 ** self._login_failures,
+                    LOGIN_BACKOFF_CAP_S,
+                )
+                logger.error(
+                    "Petlibro login failure #%d, next attempt ~%ds",
+                    self._login_failures, int(delay),
+                )
             except PetlibroSessionError as err:
                 # Session contested (phone app?) or cooldown active. Keep the
                 # normal cadence — the client will retry ONE login next cycle.
@@ -251,15 +273,21 @@ class PetlibroAdapter(DeviceAdapter):
 
     @property
     def connected(self) -> bool:
-        return self._serial is not None and bool(self._live)
+        return (
+            self._serial is not None
+            and bool(self._live)
+            and self._last_state_refresh is not None
+        )
 
     async def get_state(self) -> DeviceState:
+        """fetched_at_utc is the time of the last successful STATE poll —
+        never fabricated from the request time."""
         if not self.connected:
             raise RuntimeError("feeder adapter is not connected")
         return DeviceState(
             device_id=self.device_id,
             device_type=self.device_type,
-            fetched_at_utc=self._last_success or datetime.now(timezone.utc),
+            fetched_at_utc=self._last_state_refresh,
             attributes=dict(self._live),
         )
 
@@ -276,7 +304,9 @@ class PetlibroAdapter(DeviceAdapter):
             except TRANSIENT_ERRORS as err:
                 self._mark_failure(f"manual_feed failed: {err}")
                 raise
-            self._mark_success(f"manual_feed({portions}) accepted")
+            # Proves cloud connectivity but is NOT a state refresh — don't
+            # flip poll health or reset failure counters.
+            self._note_cloud_success()
             # data is a bare int upstream, semantics undocumented — pass along
             return {"command": "manual_feed", "portions": portions, "result": result}
         raise ValueError(f"unknown command for feeder: {command.name!r}")
@@ -293,7 +323,7 @@ class PetlibroAdapter(DeviceAdapter):
         return AdapterHealth(
             status=status,
             detail=detail,
-            last_success_utc=self._last_success,
+            last_success_utc=self._last_cloud_success,
             consecutive_failures=self._failures,
         )
 
@@ -313,7 +343,7 @@ class PetlibroAdapter(DeviceAdapter):
         except TRANSIENT_ERRORS as err:
             self._mark_failure(f"feed log fetch failed: {err}")
             raise
-        self._mark_success("feed log fetched")
+        self._note_cloud_success()  # not a state refresh — see execute()
         events: list[dict[str, Any]] = []
         for bucket in buckets:
             for rec in bucket.get("workRecords", []) or []:
@@ -328,14 +358,25 @@ class PetlibroAdapter(DeviceAdapter):
                     "portions": int(rec.get("actualGrainNum") or 0),
                     "type": rec.get("type"),
                 })
-        return events
+        # the vendor `size` param caps records per day-bucket, not the total —
+        # enforce the caller's limit on the flattened list ourselves
+        return events[:limit]
 
     # ── health bookkeeping ───────────────────────────────────────────────
 
-    def _mark_success(self, detail: str) -> None:
+    def _mark_poll_success(self, detail: str) -> None:
+        """A successful STATE poll — the only thing that flips health OK."""
         self._status, self._detail = HealthStatus.OK, detail
-        self._last_success = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        self._last_state_refresh = now
+        self._last_cloud_success = now
         self._failures = 0
+        self._login_failures = 0
+
+    def _note_cloud_success(self) -> None:
+        """A successful command/history call: proves connectivity, does NOT
+        vouch for state freshness — health status/counters untouched."""
+        self._last_cloud_success = datetime.now(timezone.utc)
 
     def _mark_failure(self, detail: str) -> None:
         self._failures += 1

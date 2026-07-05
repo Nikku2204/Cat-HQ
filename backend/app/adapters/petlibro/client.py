@@ -101,16 +101,22 @@ class PetlibroClient:
         self._token_gen = 0  # bumped on every successful login (single-flight aid)
         self._login_lock = asyncio.Lock()
         self._last_login_at = float("-inf")  # time.monotonic() of last attempt
+        self._closed = False
 
     # ── session/lifecycle ────────────────────────────────────────────────
 
     async def _ws(self) -> aiohttp.ClientSession:
+        if self._closed:
+            # never silently resurrect a session after close() — a late call
+            # from a stopped adapter must fail loudly, not leak a session
+            raise PetlibroError("client is closed")
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(timeout=REQUEST_TIMEOUT)
             self._owns_session = True
         return self._session
 
     async def close(self) -> None:
+        self._closed = True
         if self._owns_session and self._session is not None:
             await self._session.close()
             self._session = None

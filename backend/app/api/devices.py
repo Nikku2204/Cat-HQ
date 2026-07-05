@@ -9,6 +9,8 @@ Error mapping:
 from __future__ import annotations
 
 import aiohttp
+from botocore.exceptions import BotoCoreError
+from botocore.exceptions import ClientError as CognitoClientError
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from pylitterbot.exceptions import LitterRobotException
@@ -24,7 +26,16 @@ from ..adapters.petlibro.client import (
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
-CLOUD_ERRORS = (LitterRobotException, aiohttp.ClientError, TimeoutError)
+# botocore errors leak from pylitterbot's Cognito token refresh — map them to
+# 502 like any other cloud failure instead of a raw 500.
+CLOUD_ERRORS = (
+    LitterRobotException,
+    aiohttp.ClientError,
+    TimeoutError,
+    BotoCoreError,
+    CognitoClientError,
+    KeyError,  # pylitterbot's Cognito error handler can KeyError internally
+)
 FEEDER_CLOUD_ERRORS = (PetlibroError, aiohttp.ClientError, TimeoutError)
 
 
