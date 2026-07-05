@@ -1,0 +1,13 @@
+# Build context is the repo root (backend image builds frontend + backend).
+.git
+.env
+data
+docs
+go2rtc
+frontend/node_modules
+frontend/dist
+**/__pycache__
+*.pyc
+.venv
+README.md
+CLAUDE.md

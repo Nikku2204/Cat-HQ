@@ -1,18 +1,23 @@
-"""Cat HQ backend — M4: adapters + SQLite recorder + WebSocket hub.
+"""Cat HQ backend — M5: adapters + recorder + WebSocket hub + auth + PWA.
 
-The lifespan handler owns adapter, recorder, and hub lifecycles.
+The lifespan handler owns adapter, recorder, and hub lifecycles. When a
+frontend build exists (app/static, copied in by the Docker build), the
+backend also serves the PWA — one origin for REST, WS, and UI.
 """
 import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 
 from .adapters.base import DeviceAdapter
 from .adapters.litterrobot import LitterRobotAdapter
 from .adapters.petlibro import PetlibroAdapter
 from .api import devices, events, ws
+from .auth import require_auth
 from .broadcast import Hub
 from .config import get_settings
 from .db import SessionLocal, dispose_db, init_db
@@ -47,6 +52,11 @@ def _hub_notifier(device_id: str, adapter: DeviceAdapter, hub: Hub):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.cathq_auth_token in ("", "change-me"):
+        logger.warning(
+            "CATHQ_AUTH_TOKEN is unset/default — anyone on the network can "
+            "control the devices. Generate one: openssl rand -hex 32"
+        )
     await init_db()
     hub = Hub()
     await hub.start()
@@ -85,13 +95,37 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
-app.include_router(devices.router)
-app.include_router(events.router)
-app.include_router(ws.router)
+# M5: everything that reads device data or moves hardware requires the bearer
+# token. /health and the static PWA shell stay open (the shell contains no
+# data; the token gates every API call the shell makes).
+app.include_router(devices.router, dependencies=[Depends(require_auth)])
+app.include_router(events.router, dependencies=[Depends(require_auth)])
+app.include_router(ws.router)  # WS authenticates inside the handshake
+
+# Frontend build output — present in the Docker image (multi-stage build),
+# absent in the bare dev loop (use `npm run dev` + Vite proxy instead).
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+# index.html/sw.js/manifest must revalidate every load (a stale service
+# worker is the classic self-inflicted PWA outage); hashed /assets are
+# immutable by construction.
+_NO_CACHE = "no-cache"
+_IMMUTABLE = "public, max-age=31536000, immutable"
 
 
-@app.get("/")
+def _static_response(path: str) -> FileResponse | None:
+    candidate = (STATIC_DIR / path).resolve()
+    if not candidate.is_relative_to(STATIC_DIR) or not candidate.is_file():
+        return None
+    cache = _IMMUTABLE if path.startswith("assets/") else _NO_CACHE
+    return FileResponse(candidate, headers={"Cache-Control": cache})
+
+
+@app.get("/", include_in_schema=False)
 def root():
+    index = _static_response("index.html")
+    if index is not None:
+        return index
     return {"app": settings.app_name, "hint": "see /health"}
 
 
@@ -125,3 +159,16 @@ async def health(request: Request):
             for name, adapter in adapters.items()
         },
     }
+
+
+# Registered LAST: every earlier route (API + /health) wins; anything else is
+# a static file or an SPA navigation → index.html. 404 with no frontend build.
+@app.get("/{path:path}", include_in_schema=False)
+def spa(path: str):
+    response = _static_response(path)
+    if response is not None:
+        return response
+    index = _static_response("index.html")
+    if index is not None:
+        return index
+    raise HTTPException(status_code=404)

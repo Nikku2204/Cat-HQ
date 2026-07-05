@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M4 — live API** (M1 lacks only the clean-cycle test, planned later today; M2+M3 accepted) |
-| Last updated | 2026-07-05 |
-| Blockers | M1 clean-cycle test needs owner watching the LR4. Remaining fill-in: Tapo model. Hardware purchase pending (dev on owner's Mac meanwhile — re-verify compose on the home box when it arrives). |
+| Current milestone | **M5 — dashboard v1** (code complete, container verification pending; M1/M4 watched clean-cycle test still owed) |
+| Last updated | 2026-07-05 (session paused midday, resuming evening) |
+| Blockers | Docker Hub pulls flaky today (DeadlineExceeded ×2) — image with auth+PWA not deployed yet, container still runs the M4 build. M1 clean-cycle test needs owner watching the LR4 (see M1 note: one cycle fired accidentally, unattended). Remaining fill-in: Tapo model. Hardware purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -34,6 +34,11 @@ becomes the value).*
 real LR4 (pylitterbot==2025.6.1, poll-only, websocket deferred to M3/M4).
 Clean-cycle trigger implemented but NOT yet fired — owner wants to watch;
 scheduled 2026-07-06. Milestone accepted only after that passes.*
+*Update 2026-07-05 11:33 PDT: a clean cycle WAS fired — accidentally and
+unattended — by an M5 auth probe hitting the old un-authed image (Claude
+error, see CLAUDE.md incident note). The LR4 cycled and returned to Ready,
+so the HTTP→cloud→device path is proven; owner decides whether the formal
+watched two-client test (M1+M4 acceptance) still runs as planned.*
 
 ### M2 — Petlibro adapter (est. 15–25h) ⚠ highest risk ✅ 2026-07-05
 - [x] Dedicated Petlibro account created and device shared to it
@@ -85,6 +90,16 @@ RDY→CCP arrive on two open clients within seconds.*
 - [ ] History view from `/events`
 
 **Accept:** installed on the owner's phone; all statuses live on LAN.
+*Progress 2026-07-05 (session paused): all three items CODE-COMPLETE, boxes
+stay unticked until container verification passes. Built: frontend/ (Vite 8 +
+React 19 + TS PWA, `npm run build` clean), backend bearer auth (REST + WS
+subprotocol; /health open), SPA served by the backend (one origin), multi-
+stage Dockerfile. NOT yet deployed — Docker Hub timeouts blocked the rebuild;
+old M4 image still running. Evening plan: rebuild → scripts/verify_m5.sh →
+scripts/smoke.cjs (read-only browser test) → review → tick boxes → owner
+installs on phone. NB: service worker/offline needs HTTPS → full offline
+tolerance is verified at M7 (Tailscale TLS); on LAN HTTP the shell installs
+via Add to Home Screen and degrades gracefully.*
 
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC

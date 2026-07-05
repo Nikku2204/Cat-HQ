@@ -39,14 +39,32 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
-## Current state (2026-07-05, end of session 2)
-M0 ✅ M2 ✅ M3 ✅ accepted. M1 and M4 are code-complete and live-verified
-except ONE shared physical test: POST /devices/litterrobot/clean with two
-/ws clients open while the owner watches the LR4 (globe cycles = M1;
-both clients show RDY→CCP within seconds via LR4 push = M4). Run that
-first, tick both acceptances in docs/03, then start M5 (React+Vite PWA —
-needs Node on the dev Mac; check before scaffolding frontend/).
-Both adapters run live against real devices (cat: Pinsu; feeder
-"chutku food" on the DEDICATED Petlibro account — never log in with the
-owner's main account). Owner is token-cost-conscious: work solo, no
-multi-agent workflows unless explicitly requested.
+## Current state (2026-07-05, session 4 PAUSED mid-M5, resuming tonight)
+M0 ✅ M2 ✅ M3 ✅ accepted. M1/M4 still owe the owner-watched clean-cycle
+test (two /ws clients open, owner watches the globe). ⚠ INCIDENT
+2026-07-05 11:33 PDT: an M5 verify script accidentally fired
+POST /devices/litterrobot/clean UNATTENDED — a docker rebuild had
+silently failed (exit code masked by a pipe) so the OLD un-authed image
+was still serving, and the "expect 401" probe executed for real. Cycle
+completed fine (proves HTTP→Whisker→LR4 path), but tell the owner and
+let THEM decide if the watched M1/M4 test still needs a rerun. Rule
+added to memory: auth probes use GET-only endpoints; never pipe-mask
+build exit codes.
+M5 code-COMPLETE, NOT yet container-verified:
+- backend: bearer auth on /devices+/events (app/auth.py; /health stays
+  open), /ws auth via subprotocols ["cathq", token], SPA static serving
+  from app/static, multi-stage Dockerfile (build context = repo ROOT).
+- frontend/: Vite+React+TS PWA (Node 26 now on the Mac via brew);
+  `npm run build` passes clean. Login → live dashboard (WS store w/
+  reconnect) → litter+feeder cards → history view.
+BLOCKED ON: Docker Hub DeadlineExceeded pulling base-image metadata
+(twice today). Resume: retry `docker compose build backend` (check the
+REAL exit code), `docker compose up -d`, then scripts/verify_m5.sh
+(side-effect-free now), then scripts/smoke.cjs (playwright — install it
+OUTSIDE frontend/, chromium already cached), then (if owner re-approves
+workflows) scripts/m5-review.workflow.js, then tick docs/03 M5 boxes.
+M5 acceptance ultimately needs the owner's phone (Add to Home Screen).
+Devices live (cat: Pinsu; feeder "chutku food" on the DEDICATED
+Petlibro account — never the owner's main account). Owner is
+token-cost-conscious: work solo, no multi-agent workflows unless
+explicitly requested (ultracode was enabled for session 4 only).

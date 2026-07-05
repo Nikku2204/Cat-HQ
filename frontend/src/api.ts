@@ -1,0 +1,93 @@
+import type { Devices, EventOut } from './types'
+
+const TOKEN_KEY = 'cathq_token'
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+export function saveToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
+// App.tsx registers a handler that clears the token and returns to the
+// login screen whenever any API call comes back 401.
+let onUnauthorized: (() => void) | null = null
+export function setUnauthorizedHandler(fn: () => void): void {
+  onUnauthorized = fn
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken()
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> | undefined),
+  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (init?.body) headers['Content-Type'] = 'application/json'
+  const res = await fetch(path, { ...init, headers })
+  if (res.status === 401) {
+    onUnauthorized?.()
+    throw new ApiError(401, 'token rejected')
+  }
+  if (!res.ok) {
+    let detail = res.statusText
+    try {
+      const body = (await res.json()) as { detail?: unknown }
+      if (body.detail) detail = String(body.detail)
+    } catch {
+      /* non-JSON error body — keep statusText */
+    }
+    throw new ApiError(res.status, detail)
+  }
+  return res.json() as Promise<T>
+}
+
+export const api = {
+  devices: () => request<{ devices: Devices }>('/devices'),
+
+  clean: () =>
+    request<{ command: string; accepted: boolean }>('/devices/litterrobot/clean', {
+      method: 'POST',
+    }),
+
+  feed: (portions: number) =>
+    request<{ command: string; portions: number }>('/devices/feeder/feed', {
+      method: 'POST',
+      body: JSON.stringify({ portions }),
+    }),
+
+  events: (params: {
+    device?: string
+    type?: string
+    until?: string
+    limit?: number
+  }) => {
+    const qs = new URLSearchParams()
+    if (params.device) qs.set('device', params.device)
+    if (params.type) qs.set('type', params.type)
+    if (params.until) qs.set('until', params.until)
+    if (params.limit) qs.set('limit', String(params.limit))
+    return request<{ count: number; events: EventOut[] }>(`/events?${qs}`)
+  },
+}
+
+/** Login-screen probe: is this token accepted? Throws on network failure. */
+export async function checkToken(token: string): Promise<boolean> {
+  const res = await fetch('/devices', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401) return false
+  if (!res.ok) throw new ApiError(res.status, res.statusText)
+  return true
+}

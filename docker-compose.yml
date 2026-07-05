@@ -4,7 +4,9 @@
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: .                  # repo root: the image also builds frontend/
+      dockerfile: backend/Dockerfile
     container_name: cathq-backend
     env_file: .env
     ports:
