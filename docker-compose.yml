@@ -1,0 +1,35 @@
+# Cat HQ — M0 scaffold
+# Two services: FastAPI backend + go2rtc (video restreamer).
+# Runs on any Docker host, x86 or ARM. See README.md for quickstart.
+
+services:
+  backend:
+    build: ./backend
+    container_name: cathq-backend
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data              # SQLite lives here from M3 on
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  go2rtc:
+    image: alexxit/go2rtc:latest  # pin to an exact tag after the first successful pull
+    container_name: cathq-go2rtc
+    env_file: .env                # supplies TAPO_CAM_* to the ${vars} in go2rtc.yaml
+    ports:
+      - "1984:1984"               # go2rtc web UI / API
+      - "8554:8554"               # RTSP restream
+      - "8555:8555/tcp"           # WebRTC
+      - "8555:8555/udp"
+    volumes:
+      - ./go2rtc/go2rtc.yaml:/config/go2rtc.yaml:ro
+    restart: unless-stopped
+    # M6 note: on the Linux home box, consider switching this service to
+    # `network_mode: host` (and deleting `ports:`) — it simplifies WebRTC.

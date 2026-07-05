@@ -1,0 +1,23 @@
+[project]
+name = "cathq-backend"
+version = "0.1.0"
+description = "Cat HQ backend — FastAPI + adapters for cat devices"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "pydantic-settings>=2.4,<3",
+]
+
+# Arriving in later milestones (keep Dockerfile dep layer in sync):
+#   M1: pylitterbot          (pin the latest release at build time)
+#   M2: aiohttp              (ported Petlibro client)
+#   M3: sqlalchemy, aiosqlite
+#   M8: pywebpush
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

@@ -1,0 +1,14 @@
+# secrets
+.env
+
+# runtime data (SQLite etc.)
+data/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# frontend (from M5)
+node_modules/
+dist/
