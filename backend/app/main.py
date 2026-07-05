@@ -1,7 +1,7 @@
-"""Cat HQ backend — M1: app skeleton, /health, Litter-Robot adapter.
+"""Cat HQ backend — M3: adapters + SQLite event recorder.
 
-The lifespan handler owns adapter lifecycles. M3 adds the SQLite pollers
-here, M4 the WebSocket broadcaster.
+The lifespan handler owns adapter and recorder lifecycles. M4 adds the
+WebSocket broadcaster here.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -12,8 +12,10 @@ from fastapi import FastAPI, Request
 from .adapters.base import DeviceAdapter
 from .adapters.litterrobot import LitterRobotAdapter
 from .adapters.petlibro import PetlibroAdapter
-from .api import devices
+from .api import devices, events
 from .config import get_settings
+from .db import SessionLocal, dispose_db, init_db
+from .pollers import Recorder
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -22,6 +24,7 @@ STARTED_AT = datetime.now(timezone.utc)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
     adapters: dict[str, DeviceAdapter] = {}
     if settings.whisker_email and settings.whisker_password:
         litterrobot = LitterRobotAdapter(
@@ -45,13 +48,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("feeder adapter not configured (no PETLIBRO_* in .env)")
     app.state.adapters = adapters
+    recorder = Recorder(adapters, SessionLocal)
+    await recorder.start()
     yield
+    await recorder.stop()
     for adapter in adapters.values():
         await adapter.stop()
+    await dispose_db()
 
 
 app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
 app.include_router(devices.router)
+app.include_router(events.router)
 
 
 @app.get("/")

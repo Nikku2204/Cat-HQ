@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M3 — data layer** (M1 lacks only the clean-cycle test, scheduled 2026-07-06; M2 accepted) |
+| Current milestone | **M4 — live API** (M1 lacks only the clean-cycle test, planned later today; M2+M3 accepted) |
 | Last updated | 2026-07-05 |
-| Blockers | M1 clean-cycle test needs owner watching the LR4 (tomorrow). Adversarial-review findings for M1/M2 adapters pending application. Remaining fill-in: Tapo model. Hardware purchase pending (dev on owner's Mac meanwhile — re-verify compose on the home box when it arrives). |
+| Blockers | M1 clean-cycle test needs owner watching the LR4. Remaining fill-in: Tapo model. Hardware purchase pending (dev on owner's Mac meanwhile — re-verify compose on the home box when it arrives). |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -50,12 +50,19 @@ Known quirks: battery_state="low"/pct=0 on mains (don't alert on this at
 M8); enableFeedingPlan=false in realInfo despite active on-device
 schedule — flag may live in baseInfo, fix queued with review findings.*
 
-### M3 — Data layer (est. 8–12h)
-- [ ] SQLite schema: events, state snapshots, notification ledger
-- [ ] Pollers (60s, jitter, backoff) writing normalized events
-- [ ] `GET /events` with device/time filters
+### M3 — Data layer (est. 8–12h) ✅ 2026-07-05
+- [x] SQLite schema: events, state snapshots, notification ledger
+- [x] Pollers (60s, jitter, backoff) writing normalized events
+- [x] `GET /events` with device/time filters
 
 **Accept:** events accumulate correctly across a backend restart.
+*Accepted 2026-07-05: SQLite (WAL) via SQLAlchemy async + aiosqlite.
+Recorder samples adapter in-memory state every ~60s (zero extra vendor
+traffic) for change events + latest-state snapshots, and ingests vendor
+history every ~10 min idempotently (UNIQUE dedupe keys). Restart test:
+62 events before = 62 after, history re-ingest produced 0 duplicates;
+diff baseline seeds from the DB so changes across downtime are caught.
+GET /events supports device/type/since/until/limit.*
 
 ### M4 — Live API (est. 6–10h)
 - [ ] WebSocket channel broadcasting state changes

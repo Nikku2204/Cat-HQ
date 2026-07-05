@@ -12,10 +12,12 @@ dependencies = [
     "pylitterbot==2025.6.1",
     # Direct dep for the ported Petlibro client (adapters/petlibro/, M2).
     "aiohttp>=3.9,<4",
+    # Data layer (M3).
+    "sqlalchemy>=2.0,<3",
+    "aiosqlite>=0.20",
 ]
 
 # Arriving in later milestones (keep Dockerfile dep layer in sync):
-#   M3: sqlalchemy, aiosqlite
 #   M8: pywebpush
 
 [build-system]
