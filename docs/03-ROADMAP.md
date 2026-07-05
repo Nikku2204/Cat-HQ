@@ -4,20 +4,26 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M0 — scaffold generated, awaiting acceptance run** |
+| Current milestone | **M1 — Litter-Robot adapter** |
 | Last updated | 2026-07-05 |
-| Blockers | None for M0. Remaining fill-ins: cat names, Tapo model, timezone. Hardware purchase pending (dev on owner's PC meanwhile). |
+| Blockers | M1 needs `WHISKER_EMAIL`/`WHISKER_PASSWORD` in `.env` (owner watches first cloud login). Remaining fill-ins: cat names, Tapo model, timezone. Hardware purchase pending (dev on owner's Mac meanwhile — M0 accepted there; re-verify compose on the home box when it arrives). |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
 ## Milestones
 
-### M0 — Scaffold (est. 4–6h)
-- [ ] Repo per layout in `01-ARCHITECTURE.md`, with `docker-compose.yml` (backend + go2rtc)
-- [ ] `.env.example` covering all credentials/config; config loader in backend
-- [ ] `GET /health` endpoint returns build info
+### M0 — Scaffold (est. 4–6h) ✅ 2026-07-05
+- [x] Repo per layout in `01-ARCHITECTURE.md`, with `docker-compose.yml` (backend + go2rtc)
+- [x] `.env.example` covering all credentials/config; config loader in backend
+- [x] `GET /health` endpoint returns build info
 
 **Accept:** `docker compose up` on the home box serves `/health` on the LAN.
+*Accepted 2026-07-05 on the owner's Mac (home box not purchased yet): both
+containers healthy, `/health` returns build info, go2rtc UI on :1984.
+Re-run `docker compose up` + LAN check when the home box arrives.
+Fix along the way: no inline comments in env files — compose and
+python-dotenv parse them inconsistently (empty value + comment ⇒ comment
+becomes the value).*
 
 ### M1 — Litter-Robot adapter (est. 6–10h)
 - [ ] Adapter wrapping pylitterbot: state, start-clean command, activity history
