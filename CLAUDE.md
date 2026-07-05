@@ -39,7 +39,14 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
-## Current state (2026-07-05)
-M0 scaffold generated (compose, `.env.example`, config loader, `/health`,
-adapter base interface) — awaiting its first acceptance run. Next up:
-M1, the Litter-Robot adapter (needs `WHISKER_EMAIL`/`WHISKER_PASSWORD` in `.env`).
+## Current state (2026-07-05, end of session 2)
+M0 ✅ M2 ✅ M3 ✅ accepted. M1 and M4 are code-complete and live-verified
+except ONE shared physical test: POST /devices/litterrobot/clean with two
+/ws clients open while the owner watches the LR4 (globe cycles = M1;
+both clients show RDY→CCP within seconds via LR4 push = M4). Run that
+first, tick both acceptances in docs/03, then start M5 (React+Vite PWA —
+needs Node on the dev Mac; check before scaffolding frontend/).
+Both adapters run live against real devices (cat: Pinsu; feeder
+"chutku food" on the DEDICATED Petlibro account — never log in with the
+owner's main account). Owner is token-cost-conscious: work solo, no
+multi-agent workflows unless explicitly requested.
