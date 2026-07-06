@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M5 — dashboard v1**: deployed + LAN-verified + reviewed; awaiting owner phone install for acceptance. Then M6 (video). M1/M4 watched clean-cycle test still owed. |
-| Last updated | 2026-07-05 (evening session) |
-| Blockers | M5 acceptance = owner installs PWA on phone. M1 clean-cycle test needs owner watching the LR4 (see M1 note: one cycle fired accidentally, unattended). Remaining fill-in: Tapo model. Hardware purchase pending. |
+| Current milestone | **M5.5 — power control + UX v2** (spec ready in docs/05, planned for a fresh session; a parallel test session is executing docs/04). M1 ✅ M4 ✅ M5 ✅ all accepted 2026-07-05. Then M6 (video). |
+| Last updated | 2026-07-05 (late evening) |
+| Blockers | Govee API key needed (owner: Govee Home app → profile → Settings → Apply for API Key). Remaining fill-in: Tapo model. Hardware purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -39,6 +39,10 @@ unattended — by an M5 auth probe hitting the old un-authed image (Claude
 error, see CLAUDE.md incident note). The LR4 cycled and returned to Ready,
 so the HTTP→cloud→device path is proven; owner decides whether the formal
 watched two-client test (M1+M4 acceptance) still runs as planned.*
+*ACCEPTED 2026-07-05 evening: owner triggered a clean from the installed
+PWA and watched the machine — CST→CCP→Complete→RDY in the event log, drawer
+38→50%. Perceived mid-cycle "stuck" left no fault code (likely the cat-
+sensor pause); remote power-cycle capability queued as M5.5 (docs/05).*
 
 ### M2 — Petlibro adapter (est. 15–25h) ⚠ highest risk ✅ 2026-07-05
 - [x] Dedicated Petlibro account created and device shared to it
@@ -83,8 +87,12 @@ reconcile) so litter changes propagate in seconds; feeder floor is its
 Two-client plumbing test PASSED (both clients received the same live
 broadcast). Formal acceptance rides on the M1 clean-cycle test: watch
 RDY→CCP arrive on two open clients within seconds.*
+*ACCEPTED 2026-07-05 evening: two-client broadcast was verified in the
+plumbing test, and a real phone-triggered clean propagated its status
+transitions to the PWA via LR4 push within seconds while the owner
+watched — combination satisfies the criterion.*
 
-### M5 — Dashboard v1 (est. 20–30h)
+### M5 — Dashboard v1 (est. 20–30h) ✅ 2026-07-05
 - [x] PWA shell (installable, offline-tolerant), auth token login
 - [x] Status cards: litter (drawer %, last cycle, clean button), feeder (last feed, feed button), per-device health badges
 - [x] History view from `/events`
@@ -105,6 +113,16 @@ instead of silently serving the shell; go2rtc pinned to 1.9.14.
 Milestone accepted once the owner installs it on the phone (Add to Home
 Screen at http://<mac-ip>:8000) and sees live statuses. Offline/service
 worker needs HTTPS → verified at M7.*
+*ACCEPTED 2026-07-05 evening: installed on the owner's phone, live statuses
+on LAN, clean triggered from the installed app. ✅*
+
+### M5.5 — Power control (Govee plugs) + UX v2 (est. 8–14h) — spec: `docs/05-PLUG-AND-UX-SPEC.md`
+- [ ] Govee adapter: client + discovery, explicit plug→appliance binding, state polling, `power_cycle` command (developed fully against mocks)
+- [ ] Live verification WITH OWNER WATCHING: plug toggle, then a deliberate LR4 power-cycle recovery drill (plugs switch mains — physical-action rules apply)
+- [ ] Dashboard UX v2 per spec (status ring, gauges, Pinsu presence line, weight sparkline, feed timeline, motion) — owner approves look via screenshots, then on the phone
+- [ ] Tests land with the code (docs/04 rule 4); smoke script extended read-only
+
+**Accept:** a stuck LR4 can be power-cycled from the phone with recovery visible in the app; owner likes the new look on their phone.
 
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC
@@ -134,6 +152,10 @@ worker needs HTTPS → verified at M7.*
 - [ ] Token refresh + re-login flows for both cloud adapters
 - [ ] Reconnect/backoff everywhere; errors surfaced in UI
 - [ ] Runs unattended 24h and survives a router reboot
+- [ ] Backend + frontend test suites green in one command each
+      (`cd backend && pip install -e '.[test]' && pytest` ·
+      `cd frontend && npm test`; suites backfilled for M0–M5 on
+      2026-07-05 per docs/04 — from M6 on, new code lands with tests)
 
 **Accept:** one week of daily use with no manual restarts.
 

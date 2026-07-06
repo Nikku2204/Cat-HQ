@@ -27,7 +27,7 @@ fi
 # 2) the example file must stay value-free for secret-looking keys
 if echo "$staged" | grep -q '\.env\.example$'; then
     if git show :.env.example 2>/dev/null \
-        | grep -E '^[A-Z_]*(TOKEN|PASSWORD|PASS|EMAIL)=..*' | grep -q .; then
+        | grep -E '^[A-Z_]*(TOKEN|PASSWORD|PASS|EMAIL|KEY|SECRET)=..*' | grep -q .; then
         fail ".env.example carries a non-empty secret-looking value — examples stay empty"
     fi
 fi
@@ -37,7 +37,7 @@ if [ -f .env ]; then
     while IFS='=' read -r var val; do
         case "$var" in
             \#*|'') continue ;;
-            *_TOKEN|*_PASSWORD|*_PASS|*_EMAIL) ;;
+            *_TOKEN|*_PASSWORD|*_PASS|*_EMAIL|*_KEY|*_SECRET) ;;
             *) continue ;;
         esac
         [ -n "$val" ] || continue

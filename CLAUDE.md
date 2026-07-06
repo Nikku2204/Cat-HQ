@@ -44,27 +44,29 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
-## Current state (2026-07-05, end of session 4)
-M0 ✅ M2 ✅ M3 ✅ accepted. M5 deployed + LAN-verified + adversarially
-reviewed (17 findings fixed, see docs/03 M5 note); ACCEPTANCE = owner
-installs the PWA on the phone (http://<mac-ip>:8000 → Add to Home
-Screen) and sees live statuses. CATHQ_AUTH_TOKEN was rotated off the
-default on 2026-07-05 (backend now refuses to start on ""/"change-me");
-owner reads it for login via `grep CATHQ_AUTH_TOKEN .env`. M1/M4 still
-owe the owner-watched clean-cycle test (two /ws clients, watch the
-globe) — note: one cycle fired accidentally unattended on 2026-07-05
-(see docs/03 M1 note + memory no-side-effect-probes; auth probes are
-GET-only now, never trust pipe-masked build exit codes).
-Next: M6 (go2rtc + Tapo camera — needs owner: enable third-party
-compat + camera account in the Tapo app, fill camera model into
-docs/00). Testing spec ready in docs/04-TESTING.md for a dedicated
-test session (owner plans to run one).
-Tooling: Node 26 via brew on the Mac; go2rtc pinned 1.9.14; playwright
-lives OUTSIDE frontend/ (its postinstall would bloat the Docker build);
-E2E scripts in scripts/ (verify_m5.sh, smoke.cjs — both read-only by
-design, they must NEVER hit clean/feed endpoints).
+## Current state (2026-07-05, late evening — M0–M5 ALL ACCEPTED ✅)
+PWA installed on the owner's phone, live on LAN, phone-triggered clean
+verified (M1+M4+M5 accepted; see docs/03 notes). CATHQ_AUTH_TOKEN is a
+real random value now (backend refuses ""/"change-me"; owner reads it
+via `grep CATHQ_AUTH_TOKEN .env`). Secret safety is mechanized: pre-
+commit hook at scripts/githooks (core.hooksPath is set locally; covers
+*_TOKEN/_PASSWORD/_PASS/_EMAIL/_KEY/_SECRET), hardened .gitignore,
+README "Secrets & publishing safety". No git remote exists.
+NEXT UP — M5.5 (docs/05-PLUG-AND-UX-SPEC.md, fresh session): Govee
+plug adapter for LR4 power-cycling (owner must first get GOVEE_API_KEY
+via Govee Home app; plugs switch MAINS — physical-action rules apply,
+explicit plug binding required, no automation) + dashboard UX v2
+("midnight den", zero new runtime deps). A PARALLEL test session is
+executing docs/04-TESTING.md — coordinate via small commits; don't
+touch backend/tests/ files it owns.
+Then M6 (Tapo camera: owner enables third-party compat + camera
+account in the Tapo app, fills model into docs/00).
+Tooling: Node 26 via brew; go2rtc pinned 1.9.14; playwright OUTSIDE
+frontend/ (postinstall bloat); scripts/verify_m5.sh + smoke.cjs are
+read-only BY DESIGN — never add command-endpoint probes (memory:
+no-side-effect-probes).
 Devices live (cat: Pinsu; feeder "chutku food" on the DEDICATED
 Petlibro account — never the owner's main account). Owner is
 token-cost-conscious: work solo, no multi-agent workflows unless
-explicitly requested (ultracode was enabled for session 4 only; the
-review workflow ran ~735k tokens, owner-approved).
+explicitly requested; quote cost first (session-4 review ran ~735k
+tokens vs ~300–500k quoted — estimate high next time).
