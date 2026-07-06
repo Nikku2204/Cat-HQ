@@ -139,6 +139,14 @@ plug toggle + LR4 power-cycle recovery drill (mains rule — owner must watch
 the hardware); document the LR4's observed power-restore behavior here
 afterward, then tick the drill box.*
 
+*Follow-up UX pass 2026-07-05 (owner feedback, redeployed): the FEEDER card
+now also gets a power zone (its plug "chutku food" is bound), and the power
+control was simplified to ONE context-aware button — "Hold to restart"
+(off→wait→on) when the plug is on, "Hold to switch plug ON" when off. The
+standalone OFF button was dropped from the UI (still on the API); "power-cycle"
+was renamed to the plain "Restart" everywhere user-facing (backend command
+stays power_cycle). Frontend suite 134; smoke 19/19 vs the live container.*
+
 *Progress 2026-07-05 (late session): Part A landed fully against mocks —
 `adapters/govee/` (v1 client + plug adapter), routes
 `POST /devices/plug_{litterrobot,feeder}/{on,off,cycle}` (409 single-flight,
