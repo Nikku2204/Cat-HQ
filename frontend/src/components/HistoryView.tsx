@@ -8,7 +8,7 @@ const PAGE = 50
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'litterrobot', label: 'Litter' },
-  { key: 'feeder', label: 'Feeder' },
+  { key: 'feeder', label: 'Food' },
   { key: 'power', label: 'Power' },
 ] as const
 type FilterKey = (typeof FILTERS)[number]['key']
@@ -25,7 +25,7 @@ function describe(e: EventOut): { icon: string; text: string } {
   switch (e.event_type) {
     case 'feed': {
       const p = Number(d['portions'] ?? 0)
-      return { icon: '🍽️', text: `Fed ${p} portion${p === 1 ? '' : 's'}` }
+      return { icon: '🍽️', text: `Served ${p} snack${p === 1 ? '' : 's'}` }
     }
     case 'activity':
       return { icon: '📋', text: s('action') }
@@ -53,9 +53,9 @@ function describe(e: EventOut): { icon: string; text: string } {
     case 'dispenser_blocked':
       return { icon: '⚠️', text: d['to'] ? 'Dispenser blocked' : 'Dispenser cleared' }
     case 'running_state':
-      return { icon: '⚙️', text: `Feeder ${s('from')} → ${s('to')}` }
+      return { icon: '⚙️', text: `Bowl ${s('from')} → ${s('to')}` }
     case 'feed_count_change':
-      return { icon: '🍽️', text: `Feeds today: ${s('from')} → ${s('to')}` }
+      return { icon: '🍽️', text: `Snacks today: ${s('from')} → ${s('to')}` }
     // M5.5: mains power events, rendered distinctly. Two honest sources:
     // "command" rows from the adapter's power sequence, "poll" rows from
     // observed state diffs (e.g. a toggle in the Govee app).
@@ -192,7 +192,7 @@ export default function HistoryView() {
 
       {error && <div className="banner banner-bad">{error}</div>}
       {!error && events.length === 0 && !loading && (
-        <p className="muted center">No events yet.</p>
+        <p className="muted center">Nothing in the diary yet 🐾</p>
       )}
 
       <ul className="event-list">

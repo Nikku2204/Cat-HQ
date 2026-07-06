@@ -48,7 +48,7 @@ describe('App shell', () => {
     mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
     const { container } = render(<App />)
     expect(container.querySelectorAll('.card.skeleton')).toHaveLength(0)
-    expect(screen.getByText('Litter-Robot')).toBeInTheDocument()
+    expect(screen.getByText('🚽 Litter Box')).toBeInTheDocument()
     expect(container.querySelector('.avatar')).toHaveClass('conn-live')
   })
 
@@ -56,7 +56,7 @@ describe('App shell', () => {
     mockUseLive.mockReturnValue({ devices: {}, conn: 'live' })
     render(<App />)
     expect(
-      screen.getByText('Not configured — set WHISKER_* in .env'),
+      screen.getByText('No litter box yet — set WHISKER_* in .env'),
     ).toBeInTheDocument()
   })
 

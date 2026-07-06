@@ -106,9 +106,9 @@ export default function LitterCard({
     return (
       <section className="card">
         <div className="card-head">
-          <h2>Litter-Robot</h2>
+          <h2>🚽 Litter Box</h2>
         </div>
-        <p className="muted">Not configured — set WHISKER_* in .env</p>
+        <p className="muted">No litter box yet — set WHISKER_* in .env</p>
         <PowerZone plugId="plug_litterrobot" plug={plug} />
       </section>
     )
@@ -132,16 +132,16 @@ export default function LitterCard({
     setNotice(null)
     try {
       await api.clean()
-      setNotice({ text: 'Clean cycle started ✓', ok: true })
+      setNotice({ text: 'Scooping now ✓', ok: true })
     } catch (err) {
-      setNotice({ text: `Clean failed: ${(err as Error).message}`, ok: false })
+      setNotice({ text: `Couldn't scoop: ${(err as Error).message}`, ok: false })
     }
   }
 
   return (
     <section className="card">
       <div className="card-head">
-        <h2>Litter-Robot</h2>
+        <h2>🚽 Litter Box</h2>
         <HealthBadge health={entry.health} />
       </div>
 
@@ -215,12 +215,12 @@ export default function LitterCard({
 
           <dl className="meta">
             <div>
-              <dt>Last cycle</dt>
+              <dt>Last scoop</dt>
               <dd>{lastCycle ? fmtDayTime(lastCycle.ts_utc) : '—'}</dd>
             </div>
             <div>
               {/* cycle_count is lifetime; cycle_capacity is per-drawer — not a fraction */}
-              <dt>Cycles (lifetime)</dt>
+              <dt>Scoops (lifetime)</dt>
               <dd>{attrs.cycle_count ?? '—'}</dd>
             </div>
             <div>
@@ -230,14 +230,14 @@ export default function LitterCard({
               </dd>
             </div>
             <div>
-              <dt>Robot seen</dt>
+              <dt>Box seen</dt>
               <dd>{relTime(attrs.last_seen_utc)}</dd>
             </div>
           </dl>
 
           <ConfirmButton
-            label={cycling ? 'Cycle in progress…' : 'Start clean cycle'}
-            confirmLabel="Tap again to cycle the globe"
+            label={cycling ? 'Scooping…' : 'Scoop now'}
+            confirmLabel="Tap again to scoop"
             onConfirm={clean}
             disabled={cycling || attrs.is_online === false}
           />

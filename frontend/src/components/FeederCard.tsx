@@ -107,9 +107,9 @@ export default function FeederCard({
     return (
       <section className="card">
         <div className="card-head">
-          <h2>Feeder</h2>
+          <h2>🍽️ Food Bowl</h2>
         </div>
-        <p className="muted">Not configured — set PETLIBRO_* in .env</p>
+        <p className="muted">No food bowl yet — set PETLIBRO_* in .env</p>
         <PowerZone plugId="plug_feeder" plug={plug} />
       </section>
     )
@@ -128,18 +128,18 @@ export default function FeederCard({
     try {
       await api.feed(portions)
       setNotice({
-        text: `Dispensing ${portions} portion${portions > 1 ? 's' : ''} ✓`,
+        text: `Serving ${portions} snack${portions > 1 ? 's' : ''} ✓`,
         ok: true,
       })
     } catch (err) {
-      setNotice({ text: `Feed failed: ${(err as Error).message}`, ok: false })
+      setNotice({ text: `Couldn't serve: ${(err as Error).message}`, ok: false })
     }
   }
 
   return (
     <section className="card">
       <div className="card-head">
-        <h2>Feeder</h2>
+        <h2>🍽️ Food Bowl</h2>
         <HealthBadge health={entry.health} />
       </div>
 
@@ -157,11 +157,11 @@ export default function FeederCard({
                 <span className="wchip wchip-bad">📶 offline</span>
               )}
               {attrs.dispenser_blocked && (
-                <span className="wchip wchip-bad">⚠️ blocked</span>
+                <span className="wchip wchip-bad">⚠️ jammed</span>
               )}
-              {attrs.food_low && <span className="wchip wchip-warn">🍚 food low</span>}
+              {attrs.food_low && <span className="wchip wchip-warn">🍚 low on food</span>}
               {attrs.running_state && attrs.running_state !== 'IDLE' && (
-                <span className="wchip wchip-info">⚙️ dispensing…</span>
+                <span className="wchip wchip-info">⚙️ serving…</span>
               )}
             </div>
           )}
@@ -172,12 +172,12 @@ export default function FeederCard({
             <div>
               <dt>Today</dt>
               <dd>
-                <TickNumber value={attrs.today_feed_count ?? 0} /> feeds ·{' '}
+                <TickNumber value={attrs.today_feed_count ?? 0} /> snacks ·{' '}
                 <TickNumber value={attrs.today_portions ?? 0} /> portions
               </dd>
             </div>
             <div>
-              <dt>Last feed</dt>
+              <dt>Last snack</dt>
               <dd>
                 {lastFeed
                   ? `${fmtDayTime(lastFeed.ts_utc)} · ${String(
@@ -187,7 +187,7 @@ export default function FeederCard({
               </dd>
             </div>
             <div>
-              <dt>Next feed</dt>
+              <dt>Next snack</dt>
               <dd>
                 {attrs.next_feed_time_utc ? (
                   <>
@@ -207,7 +207,7 @@ export default function FeederCard({
               </dd>
             </div>
             <div>
-              <dt>Portion</dt>
+              <dt>Snack size</dt>
               <dd>≈ 1/12 cup each</dd>
             </div>
           </dl>
@@ -231,8 +231,8 @@ export default function FeederCard({
               </button>
             </div>
             <ConfirmButton
-              label={`Feed ${portions} portion${portions > 1 ? 's' : ''}`}
-              confirmLabel="Tap again to dispense"
+              label={`Serve ${portions} snack${portions > 1 ? 's' : ''}`}
+              confirmLabel="Tap again to serve"
               onConfirm={feed}
               disabled={attrs.online === false || attrs.dispenser_blocked === true}
             />

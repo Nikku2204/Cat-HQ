@@ -69,8 +69,8 @@ describe('HistoryView', () => {
     )
     render(<HistoryView />)
 
-    expect(await screen.findByText('Fed 2 portions')).toBeInTheDocument()
-    expect(screen.getByText('Fed 1 portion')).toBeInTheDocument() // singular
+    expect(await screen.findByText('Served 2 snacks')).toBeInTheDocument()
+    expect(screen.getByText('Served 1 snack')).toBeInTheDocument() // singular
     // status arrows go through lrStatus code→text mapping
     expect(screen.getByText('Ready → Clean cycle in progress')).toBeInTheDocument()
     // device tag remaps litterrobot → litter (exact, case-sensitive: not the chip)
@@ -94,13 +94,13 @@ describe('HistoryView', () => {
       )
     const user = userEvent.setup()
     render(<HistoryView />)
-    await screen.findByText('Fed 3 portions')
+    await screen.findByText('Served 3 snacks')
 
     await user.click(screen.getByRole('button', { name: 'Litter' }))
 
     expect(await screen.findByText('Clean Cycle')).toBeInTheDocument()
     // old (All) rows are gone, not merged
-    expect(screen.queryByText('Fed 3 portions')).not.toBeInTheDocument()
+    expect(screen.queryByText('Served 3 snacks')).not.toBeInTheDocument()
     expect(eventsMock).toHaveBeenCalledTimes(2)
     expect(eventsMock).toHaveBeenLastCalledWith({ device: 'litterrobot', limit: 50 })
   })
@@ -136,7 +136,7 @@ describe('HistoryView', () => {
     await act(async () => {
       resolveStale(page([ev({ data: { portions: 9 }, ts_utc: ts(1) })]))
     })
-    expect(screen.queryByText('Fed 9 portions')).not.toBeInTheDocument()
+    expect(screen.queryByText('Served 9 snacks')).not.toBeInTheDocument()
     expect(screen.getByText('litter-row')).toBeInTheDocument()
   })
 
@@ -216,7 +216,7 @@ describe('HistoryView', () => {
   it('hides Load older when the first page is short (<50)', async () => {
     eventsMock.mockResolvedValueOnce(page([ev({ ts_utc: ts(0) })]))
     render(<HistoryView />)
-    await screen.findByText('Fed 2 portions')
+    await screen.findByText('Served 2 snacks')
 
     expect(screen.queryByRole('button', { name: /load older|loading/i })).not.toBeInTheDocument()
     expect(eventsMock).toHaveBeenCalledTimes(1)
@@ -258,7 +258,7 @@ describe('HistoryView', () => {
       ]),
     )
     render(<HistoryView />)
-    await screen.findByText('Fed 4 portions')
+    await screen.findByText('Served 4 snacks')
 
     const heads = screen.getAllByText(/^(Today|Yesterday)$/)
     expect(heads.map((h) => h.textContent)).toEqual(['Today', 'Yesterday'])
@@ -339,7 +339,7 @@ describe('HistoryView', () => {
     )
     const { container } = render(<HistoryView />)
 
-    await screen.findByText('Fed 2 portions')
+    await screen.findByText('Served 2 snacks')
     expect(container.querySelectorAll('.event-fault')).toHaveLength(2)
     expect(
       screen.getByText('Restart FAILED during on: HTTP 500'),
@@ -362,7 +362,7 @@ describe('HistoryView', () => {
       )
     const user = userEvent.setup()
     render(<HistoryView />)
-    await screen.findByText('Fed 3 portions')
+    await screen.findByText('Served 3 snacks')
 
     await user.click(screen.getByRole('button', { name: 'Power' }))
 

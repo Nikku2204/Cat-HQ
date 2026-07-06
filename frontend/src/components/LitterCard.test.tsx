@@ -1,7 +1,7 @@
 // docs/04-TESTING.md Phase 3 (updated for M5.5 UX v2) — LitterCard:
 // not-configured placeholder, "No data — <detail>" fallback, offline pill,
 // clean happy path (real ConfirmButton two-tap flow under fake timers),
-// failure notice, disabled matrix (CCP / offline), "Last cycle" from the
+// failure notice, disabled matrix (CCP / offline), "Last scoop" from the
 // event log, status ring modes, Pinsu presence + weight sparkline, fault
 // display, and the plug power zone (docs/05).
 import { act, fireEvent, render, screen } from '@testing-library/react'
@@ -133,7 +133,7 @@ describe('LitterCard', () => {
   it('shows the not-configured placeholder and skips the event fetch when no entry', () => {
     render(<LitterCard />)
     expect(
-      screen.getByText('Not configured — set WHISKER_* in .env'),
+      screen.getByText('No litter box yet — set WHISKER_* in .env'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(mockEvents).not.toHaveBeenCalled()
@@ -206,10 +206,10 @@ describe('LitterCard', () => {
     })
 
     // No clean-cycle event in the log yet
-    expect(screen.getByText('Last cycle').nextElementSibling).toHaveTextContent('—')
+    expect(screen.getByText('Last scoop').nextElementSibling).toHaveTextContent('—')
 
     expect(
-      screen.getByRole('button', { name: 'Start clean cycle' }),
+      screen.getByRole('button', { name: 'Scoop now' }),
     ).toBeEnabled()
 
     // no bound plug prop → the power zone must not exist at all
@@ -296,7 +296,7 @@ describe('LitterCard', () => {
     expect(screen.getByText('Hold to switch plug ON')).toBeInTheDocument()
   })
 
-  it('renders "Last cycle" from the newest clean-cycle event across both queries', async () => {
+  it('renders "Last scoop" from the newest clean-cycle event across both queries', async () => {
     const olderCcc = evt({ id: 1, ts_utc: '2026-07-04T08:00:00Z' })
     const nonCycle = evt({
       id: 2,
@@ -332,7 +332,7 @@ describe('LitterCard', () => {
     await flushEffects()
     expect(screen.getByText('offline')).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Start clean cycle' }),
+      screen.getByRole('button', { name: 'Scoop now' }),
     ).toBeDisabled()
   })
 
@@ -347,7 +347,7 @@ describe('LitterCard', () => {
     )
     await flushEffects()
     expect(
-      screen.getByRole('button', { name: 'Cycle in progress…' }),
+      screen.getByRole('button', { name: 'Scooping…' }),
     ).toBeDisabled()
   })
 
@@ -357,9 +357,9 @@ describe('LitterCard', () => {
     render(<LitterCard entry={litterEntry()} />)
     await flushEffects()
 
-    const btn = screen.getByRole('button', { name: 'Start clean cycle' })
+    const btn = screen.getByRole('button', { name: 'Scoop now' })
     fireEvent.click(btn)
-    expect(btn).toHaveTextContent('Tap again to cycle the globe')
+    expect(btn).toHaveTextContent('Tap again to scoop')
     expect(mockClean).not.toHaveBeenCalled()
 
     act(() => {
@@ -370,8 +370,8 @@ describe('LitterCard', () => {
     })
 
     expect(mockClean).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Clean cycle started ✓')).toBeInTheDocument()
-    expect(btn).toHaveTextContent('Start clean cycle') // back to idle
+    expect(screen.getByText('Scooping now ✓')).toBeInTheDocument()
+    expect(btn).toHaveTextContent('Scoop now') // back to idle
   })
 
   it('shows the error notice with the message when api.clean rejects', async () => {
@@ -380,12 +380,12 @@ describe('LitterCard', () => {
     render(<LitterCard entry={litterEntry()} />)
     await flushEffects()
 
-    const btn = screen.getByRole('button', { name: 'Start clean cycle' })
+    const btn = screen.getByRole('button', { name: 'Scoop now' })
     await armAndConfirm(btn)
 
     expect(mockClean).toHaveBeenCalledTimes(1)
     expect(
-      screen.getByText('Clean failed: whisker cloud 502'),
+      screen.getByText("Couldn't scoop: whisker cloud 502"),
     ).toBeInTheDocument()
     expect(btn).toBeEnabled() // ConfirmButton returned to idle after failure
   })

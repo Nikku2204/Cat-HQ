@@ -158,8 +158,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           <h1>Cat HQ</h1>
         </button>
         <div className="topbar-right">
-          <button className="link" onClick={onLogout} title="Forget token">
-            log out
+          <button className="link" onClick={onLogout} title="Forget secret pass">
+            lock up
           </button>
         </div>
       </header>
@@ -209,13 +209,13 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           className={tab === 'status' ? 'tab active' : 'tab'}
           onClick={() => setTab('status')}
         >
-          Status
+          🏠 Home
         </button>
         <button
           className={tab === 'history' ? 'tab active' : 'tab'}
           onClick={() => setTab('history')}
         >
-          History
+          🐾 Diary
         </button>
       </nav>
     </div>

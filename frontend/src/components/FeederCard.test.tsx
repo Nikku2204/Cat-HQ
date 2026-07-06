@@ -133,7 +133,7 @@ describe('FeederCard', () => {
   it('shows the not-configured placeholder and skips the event fetch when no entry', () => {
     render(<FeederCard />)
     expect(
-      screen.getByText('Not configured — set PETLIBRO_* in .env'),
+      screen.getByText('No food bowl yet — set PETLIBRO_* in .env'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(mockEvents).not.toHaveBeenCalled()
@@ -168,13 +168,13 @@ describe('FeederCard', () => {
 
     expect(screen.getByText('chutku food')).toBeInTheDocument()
     expect(screen.getByText('Today').nextElementSibling).toHaveTextContent(
-      '3 feeds · 6 portions',
+      '3 snacks · 6 portions',
     )
     expect(
       screen.getByText(`${fmtDayTime('2026-07-05T08:00:00Z')} · 4p`),
     ).toBeInTheDocument()
     // next feed renders a countdown plus the absolute time · portions
-    expect(screen.getByText('Next feed').nextElementSibling).toHaveTextContent(
+    expect(screen.getByText('Next snack').nextElementSibling).toHaveTextContent(
       `${fmtTime('2026-07-05T17:00:00Z')} · 2p`,
     )
 
@@ -186,33 +186,33 @@ describe('FeederCard', () => {
 
     // Healthy: no warning chips, button enabled
     expect(screen.queryByText('📶 offline')).not.toBeInTheDocument()
-    expect(screen.queryByText('⚠️ blocked')).not.toBeInTheDocument()
-    expect(screen.queryByText('🍚 food low')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Feed 1 portion' })).toBeEnabled()
+    expect(screen.queryByText('⚠️ jammed')).not.toBeInTheDocument()
+    expect(screen.queryByText('🍚 low on food')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Serve 1 snack' })).toBeEnabled()
   })
 
   it('renders only the offline chip when online is false', async () => {
     render(<FeederCard entry={feederEntry({ online: false })} />)
     await flushEffects()
     expect(screen.getByText('📶 offline')).toBeInTheDocument()
-    expect(screen.queryByText('⚠️ blocked')).not.toBeInTheDocument()
-    expect(screen.queryByText('🍚 food low')).not.toBeInTheDocument()
+    expect(screen.queryByText('⚠️ jammed')).not.toBeInTheDocument()
+    expect(screen.queryByText('🍚 low on food')).not.toBeInTheDocument()
   })
 
   it('renders only the blocked chip when dispenser_blocked is true', async () => {
     render(<FeederCard entry={feederEntry({ dispenser_blocked: true })} />)
     await flushEffects()
-    expect(screen.getByText('⚠️ blocked')).toBeInTheDocument()
+    expect(screen.getByText('⚠️ jammed')).toBeInTheDocument()
     expect(screen.queryByText('📶 offline')).not.toBeInTheDocument()
-    expect(screen.queryByText('🍚 food low')).not.toBeInTheDocument()
+    expect(screen.queryByText('🍚 low on food')).not.toBeInTheDocument()
   })
 
   it('renders only the food-low chip when food_low is true', async () => {
     render(<FeederCard entry={feederEntry({ food_low: true })} />)
     await flushEffects()
-    expect(screen.getByText('🍚 food low')).toBeInTheDocument()
+    expect(screen.getByText('🍚 low on food')).toBeInTheDocument()
     expect(screen.queryByText('📶 offline')).not.toBeInTheDocument()
-    expect(screen.queryByText('⚠️ blocked')).not.toBeInTheDocument()
+    expect(screen.queryByText('⚠️ jammed')).not.toBeInTheDocument()
   })
 
   it('places today\'s feeds on the 24h timeline, dot size scaling with portions', async () => {
@@ -258,14 +258,14 @@ describe('FeederCard', () => {
     const { unmount } = render(<FeederCard entry={feederEntry({ online: false })} />)
     await flushEffects()
     expect(
-      screen.getByRole('button', { name: 'Feed 1 portion' }),
+      screen.getByRole('button', { name: 'Serve 1 snack' }),
     ).toBeDisabled()
     unmount()
 
     render(<FeederCard entry={feederEntry({ dispenser_blocked: true })} />)
     await flushEffects()
     expect(
-      screen.getByRole('button', { name: 'Feed 1 portion' }),
+      screen.getByRole('button', { name: 'Serve 1 snack' }),
     ).toBeDisabled()
   })
 
@@ -275,9 +275,9 @@ describe('FeederCard', () => {
     render(<FeederCard entry={feederEntry()} />)
     await flushEffects()
 
-    const btn = screen.getByRole('button', { name: 'Feed 1 portion' })
+    const btn = screen.getByRole('button', { name: 'Serve 1 snack' })
     fireEvent.click(btn)
-    expect(btn).toHaveTextContent('Tap again to dispense')
+    expect(btn).toHaveTextContent('Tap again to serve')
     expect(mockFeed).not.toHaveBeenCalled()
 
     act(() => {
@@ -289,8 +289,8 @@ describe('FeederCard', () => {
 
     expect(mockFeed).toHaveBeenCalledTimes(1)
     expect(mockFeed).toHaveBeenCalledWith(1)
-    expect(screen.getByText('Dispensing 1 portion ✓')).toBeInTheDocument()
-    expect(btn).toHaveTextContent('Feed 1 portion') // back to idle
+    expect(screen.getByText('Serving 1 snack ✓')).toBeInTheDocument()
+    expect(btn).toHaveTextContent('Serve 1 snack') // back to idle
   })
 
   it('stepper + then confirm feeds 2 portions', async () => {
@@ -300,11 +300,11 @@ describe('FeederCard', () => {
     await flushEffects()
 
     fireEvent.click(screen.getByRole('button', { name: 'more portions' }))
-    const btn = screen.getByRole('button', { name: 'Feed 2 portions' })
+    const btn = screen.getByRole('button', { name: 'Serve 2 snacks' })
     await armAndConfirm(btn)
 
     expect(mockFeed).toHaveBeenCalledWith(2)
-    expect(screen.getByText('Dispensing 2 portions ✓')).toBeInTheDocument()
+    expect(screen.getByText('Serving 2 snacks ✓')).toBeInTheDocument()
   })
 
   it('clamps the stepper to 1..12', async () => {
@@ -327,11 +327,11 @@ describe('FeederCard', () => {
     render(<FeederCard entry={feederEntry()} />)
     await flushEffects()
 
-    const btn = screen.getByRole('button', { name: 'Feed 1 portion' })
+    const btn = screen.getByRole('button', { name: 'Serve 1 snack' })
     await armAndConfirm(btn)
 
     expect(mockFeed).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Feed failed: dispenser jam')).toBeInTheDocument()
+    expect(screen.getByText("Couldn't serve: dispenser jam")).toBeInTheDocument()
     expect(btn).toBeEnabled() // ConfirmButton returned to idle after failure
   })
 

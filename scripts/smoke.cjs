@@ -55,7 +55,7 @@ const check = (ok, name) => {
   await page.click('button[type=submit]')
   await page.waitForSelector('.error', { timeout: 5000 })
   check(
-    (await page.locator('.error').textContent())?.includes('rejected') ?? false,
+    (await page.locator('.error').textContent())?.includes('secret pass') ?? false,
     'bad token is rejected with a message',
   )
 
@@ -88,7 +88,7 @@ const check = (ok, name) => {
   // feeder card v2: 24h dot timeline + live metadata
   check(await page.locator('.timeline-track').isVisible(), 'feed timeline renders')
   const feederVisible = await page
-    .locator('.card', { hasText: 'Feeder' })
+    .locator('.card', { hasText: 'Food Bowl' })
     .locator('.meta')
     .isVisible()
   check(feederVisible, 'feeder card shows live metadata')
@@ -109,7 +109,7 @@ const check = (ok, name) => {
   await page.click('.brand') // collapse again
 
   // history tab: rows + sticky day headers + the Power filter chip
-  await page.click('.tab >> text=History')
+  await page.click('.tab >> text=Diary')
   await page.waitForSelector('.event-row', { timeout: 10000 })
   const rows = await page.locator('.event-row').count()
   check(rows > 0, `history shows events (${rows} rows)`)
