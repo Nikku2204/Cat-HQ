@@ -1,11 +1,16 @@
 # Cat HQ
 
 One custom app to monitor and control all cat devices: Litter-Robot 4 (Whisker
-cloud), Petlibro Granary PLAF103 feeder (Petlibro cloud), and a Tapo camera
-(local RTSP).
+cloud), Petlibro Granary PLAF103 feeder (Petlibro cloud), Govee smart plugs for
+remote mains power/restart (Govee cloud), and a Tapo camera (local RTSP, wiring
+up at M6). It's a mobile PWA in a dark "midnight den" style with a cat-friendly
+voice (and Pinsu's real photos) — live status, controls, an event Diary, and
+one-hold safe power control.
 
-Project docs (brief / architecture / integrations / roadmap) live in `docs/`.
-Current milestone: **M5 — dashboard v1** (M0–M4 backend done).
+Project docs (brief / architecture / integrations / roadmap / testing / specs)
+live in `docs/`. **M0–M5.5 accepted** (backend, data layer, live API, dashboard
+v1, Govee power control + UX v2). Next up: an **insights dashboard**
+(spec: `docs/06-DASHBOARD-SPEC.md`) and **M6 — live video**.
 
 ## Quickstart
 

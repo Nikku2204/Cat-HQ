@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M6 — live video** (next). M5.5 ✅ ACCEPTED 2026-07-05: Govee power control + UX v2 deployed, owner approved the look, and the owner-watched Restart drill passed. M1 ✅ M4 ✅ M5 ✅ M5.5 ✅. |
-| Last updated | 2026-07-05 (late evening) |
-| Blockers | None for M6 code. Owner still needs to: enable Tapo third-party compatibility + create the camera account in the Tapo app, and fill the Tapo model into docs/00. Hardware purchase (home box) pending. |
+| Current milestone | **M5.7 — Insights Dashboard** (spec ready in `docs/06`, to be built in a fresh session). Then **M6 — live video**. M0–M5.5 ✅ ACCEPTED (through Govee power control + UX v2 + owner-watched Restart drill + cat-friendly copy). |
+| Last updated | 2026-07-06 |
+| Blockers | None for the dashboard (M5.7) — it builds on data we already have. For M6: owner needs to enable Tapo third-party compatibility + create the camera account in the Tapo app and fill the model into docs/00. Home-box purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -189,6 +189,28 @@ power zone, history, simulated power history, health strip) — docker rebuild
 deliberately deferred until the owner approves the look.*
 
 **Accept:** a stuck LR4 can be power-cycled from the phone with recovery visible in the app; owner likes the new look on their phone.
+
+### M5.7 — Insights Dashboard (est. 10–16h) — spec: `docs/06-DASHBOARD-SPEC.md`
+A third tab beyond Home (control) and Diary (log): an at-a-glance, delightful
+overview that turns Cat HQ's existing event log into wellbeing insights and a
+daily story of Pinsu — built entirely on data we already have (weight,
+litter visits/frequency, feeds, cycles, device health) with ZERO new runtime
+deps (hand-rolled SVG + CSS), midnight-den styled, cat-friendly voice.
+- [ ] New "Dashboard" tab + route; data hooks over `GET /events` (with any
+      small additive aggregation endpoint the spec calls for, e.g. `/insights`)
+- [ ] Hero + insight sections per `docs/06` (e.g. daily recap, weight & visit
+      trends, activity heatmap/streaks, glanceable vitals) — hand-rolled viz
+- [ ] Delight/personality per spec (kept tasteful; power/safety stays plain)
+- [ ] Tests land with the code (docs/04 rule 4); smoke extended read-only;
+      screenshots for owner approval before the live rebuild
+
+**Accept:** owner opens the Dashboard tab on their phone and it's genuinely
+useful at a glance AND fun — trends and Pinsu's daily story read clearly, it
+stays under the ~300 KB precache budget, and the owner likes it.
+
+*Independent of M6 (video) — can ship first. Spec authored 2026-07-06 from a
+research + design pass (cat/pet apps, cat-health signals, mobile dashboard
+patterns, delight mechanics, hand-rolled dataviz recipes).*
 
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC

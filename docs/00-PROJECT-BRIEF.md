@@ -9,12 +9,15 @@
 | Tapo camera (model: _fill in_) | TP-Link | Local RTSP/ONVIF on home LAN — officially supported protocols |
 | Litter-Robot 4 | Whisker | Whisker cloud via unofficial `pylitterbot` library |
 | Smart feeder — **PLAF103 (Granary 5L WiFi)** | Petlibro | Petlibro cloud via client code ported from the open-source Home Assistant integration |
+| Govee smart plugs (**H5083**, "chutku potty" → LR4, "chutku food" → feeder) | Govee | Official Govee developer API (v1); remote MAINS power/restart. Added M5.5 (`docs/05`). |
 
-None of the three vendors offer an official public developer API. The Whisker and Petlibro paths are community reverse-engineered and may break when vendors change things — the architecture accounts for this (see "Settled decisions" in `01-ARCHITECTURE.md`).
+The three monitoring vendors offer no official public developer API (Whisker and Petlibro are community reverse-engineered and may break — the architecture accounts for this, see "Settled decisions" in `01-ARCHITECTURE.md`). Govee's plug control uses the official Govee developer API but is still treated as breakable cloud; plugs switch mains, so it carries strict physical-action safety rules (`docs/05`).
 
 ## What v1 looks like
 
 A PWA (installable web app) on the owner's phone showing, live: camera feed, litter box status (drawer level, last cycle, cycle button), and feeder status (last feed, manual feed button), plus event history and push notifications for problems. Runs entirely on a small always-on computer at home, reachable remotely through a secure tunnel.
+
+*Evolved since v1 was scoped:* the app is a dark "midnight den" PWA with a cat-friendly voice and Pinsu's real photos, remote mains power/restart via Govee plugs, and (planned, `docs/06`) an at-a-glance **insights dashboard** turning the event log into wellbeing trends + a daily story of Pinsu.
 
 ## Routes considered (settled — do not re-litigate unless something breaks)
 

@@ -179,6 +179,35 @@ connected` with scriptable returns/raises. Settings override:
 - docs/03: add a line to M9's checklist: "backend+frontend test suites green
   in one command each" (testing debt formally parks under Hardening).
 
+## Post-M5 additions (from M6 on: new code lands WITH its tests)
+
+Since this spec was written the suites have grown with the features. Current
+baseline (2026-07-06): **backend 287, frontend 134** unit tests green, plus the
+extended read-only E2E (`scripts/verify_m5.sh` 17/17, `scripts/smoke.cjs`
+19/19). New test files that landed with their features:
+
+- **M5.5 Govee power** — `backend/tests/test_govee_client.py` (v1 HTTP/envelope
+  error mapping), `test_govee_adapter.py` (the mains-safety contract: exact
+  binding, refusal when unbound, single-flight, LOUD failure on any error type
+  incl. non-transient, the stranded-OFF health latch, Retry-After back-off),
+  `test_api_plug.py` (404/503/409/429/502 route mapping). Same hard rules: the
+  Govee cloud is mocked at the client boundary; no test switches a real plug,
+  and the E2E scripts stay read-only (no power endpoints — memory
+  `no-side-effect-probes`).
+- **M5.5 UX v2 + cat-friendly copy** — `frontend/src/components/HoldButton.test.tsx`
+  (≥1.5s hold; slide-off / blur / disabled-mid-hold all cancel — a mains command
+  must never fire without a real hold), `PowerZone.test.tsx` (bound-only, single
+  context action, error surfacing), `App.test.tsx` (skeleton / reconnect toast /
+  60s offline banner), extended `format.test.ts` (countdown, weight noise filter,
+  fault codes). Card/History/format tests updated for the cat-friendly copy.
+
+- **M5.7 Insights Dashboard** (`docs/06`): tests land WITH the code. Pure viz/
+  aggregation helpers (trend/streak/heatmap math, weight smoothing, "today vs
+  usual" comparisons) get fast unit tests like `format.ts`; dashboard components
+  get colocated `*.test.tsx`; any new backend aggregation endpoint gets in-process
+  route tests with a seeded in-memory `/events`. The E2E smoke gains a read-only
+  "Dashboard tab renders its sections" check. No live-cloud, no hardware.
+
 ## Explicitly out of scope
 
 - No live-cloud integration tests, no contract tests against Whisker/
