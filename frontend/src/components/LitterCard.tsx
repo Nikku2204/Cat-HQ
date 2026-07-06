@@ -12,7 +12,7 @@ import type { DeviceEntry, EventOut, LitterAttrs, PlugAttrs } from '../types'
 import ConfirmButton from './ConfirmButton'
 import Gauge from './Gauge'
 import HealthBadge from './HealthBadge'
-import PixelCat from './PixelCat'
+import PinsuAvatar from './PinsuAvatar'
 import PowerZone from './PowerZone'
 import Ring, { type RingMode } from './Ring'
 import Sparkline from './Sparkline'
@@ -150,7 +150,7 @@ export default function LitterCard({
           <div className="litter-visual">
             <div className="ring-block">
               <Ring mode={ringMode}>
-                <PixelCat size={40} />
+                <PinsuAvatar className="ring-photo" />
               </Ring>
               <div className={fault ? 'ring-status fault' : 'ring-status'}>
                 {fault ? (

@@ -34,6 +34,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // add jpg to the default precache set so Pinsu's photo (login + ring)
+        // is available on the offline shell too
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,jpg}'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [
           /^\/devices/,
