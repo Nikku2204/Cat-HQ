@@ -23,7 +23,7 @@ Error policy (hardened after adversarial review, 2026-07-05):
   Cognito 5xx) into LitterRobotLoginException — we peek at the exception
   chain to distinguish genuine credential rejections from vendor blips.
 - The poll loop NEVER stops permanently. Credential-looking failures retry
-  with escalating backoff (60s → 30min cap, ERROR badge after 2 strikes) so
+  with escalating backoff (10min → 30min cap, ERROR badge after 2 strikes) so
   a transient misclassification can't require a manual restart, while true
   bad creds stay loud without hammering Cognito. Unexpected errors tear the
   account down so the next cycle does a full re-login with credentials —

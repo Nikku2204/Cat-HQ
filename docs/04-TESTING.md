@@ -75,8 +75,10 @@ connected` with scriptable returns/raises. Settings override:
 - **test_api_devices.py**
   - GET /devices: shape {devices:{id:{health,state}}}; state null when
     adapter disconnected (fail-loud contract).
-  - GET /devices/litterrobot: 404 when adapter absent; 503 when present but
-    disconnected (detail from health); 200 with state when connected.
+  - GET /devices/litterrobot: 404 when adapter absent; 200 with state:null +
+    full health payload when present but disconnected (fail-loud: the UI
+    renders the badge from it — the 503-with-health-detail contract lives on
+    the command/history paths); 200 with state when connected.
   - POST /devices/litterrobot/clean: 502 when adapter raises each member of
     CLOUD_ERRORS (parametrize — incl. KeyError, BotoCoreError); 502 when
     accepted=False; 200 pass-through of result. Same matrix for feeder feed
@@ -96,19 +98,23 @@ connected` with scriptable returns/raises. Settings override:
   - / serves index.html when present, JSON hint when absent; /assets/x.js
     immutable cache header; index/sw.js no-cache; deep SPA route falls back
     to index.html; API routes still win over the catch-all; path traversal
-    attempts (%2e%2e, ../, absolute) never escape STATIC_DIR (404, not 500).
+    attempts (%2e%2e, ../, absolute) never serve anything outside STATIC_DIR
+    and never 500 — 404 guaranteed for file-looking paths; extensionless
+    traversals are contained and fall through to the SPA shell by design.
 
 ## Phase 2 — pure logic units (fast, no I/O)
 
 - **test_petlibro_adapter.py**
   - `_compute_next_feed`: plan later today; plan tomorrow (weekday roll);
     repeatDay as stringified list "[1,3,5]"; empty "[]" → all days; disabled
-    plan skipped; malformed executionTime logged-and-skipped (returns None,
-    never raises); plan timezone ≠ owner tz; DST boundary date.
+    plan skipped; unparseable executionTime skipped (colon-less values fail
+    the pre-check silently, colon-containing garbage logs a warning; returns
+    None, never raises); plan timezone ≠ owner tz; DST boundary date.
   - `get_feed_log` flattening: day-buckets → flat list, non-GRAIN_OUTPUT_
-    SUCCESS filtered, missing recordTime skipped, `limit` enforced on the
-    flattened list (vendor `size` is per-bucket — regression-protect that
-    comment).
+    SUCCESS filtered, missing recordTime → emitted with timestamp_utc None
+    (the adapter stays a dumb flattener; the RECORDER is what drops
+    timestamp-less rows), `limit` enforced on the flattened list (vendor
+    `size` is per-bucket — regression-protect that comment).
   - health state machine: OK → DEGRADED after 1 failure → ERROR after 5;
     device offline while cloud OK → DEGRADED with the specific detail;
     `_note_cloud_success` does NOT reset failure counters (feed during a
@@ -119,8 +125,9 @@ connected` with scriptable returns/raises. Settings override:
     throttle ClientError → False; chaining NotAuthorized → True; bare
     LoginException → True; KeyError with/without Cognito context.
   - `_handle_poll_error` backoff arithmetic: transient doubling capped at
-    600s; login failures escalate 60s→30min cap; ERROR badge only at ≥2
-    login strikes; unexpected error → teardown + 600s.
+    600s; login failures escalate 600s→30min cap (base = the 5-min M4
+    reconcile interval, POLL_INTERVAL_S); ERROR badge only at ≥2 login
+    strikes; unexpected error → teardown + 600s.
   - get_state attribute mapping from a stub Robot (enums → .value, None
     litter_level_state, last_seen None).
 - **test_recorder.py** (in-memory DB + FakeAdapter)
@@ -129,8 +136,11 @@ connected` with scriptable returns/raises. Settings override:
   - baseline seeding: restart with existing DeviceStateRow → change across
     downtime produces an event, unchanged does not.
   - history ingest idempotency: same rows twice → no duplicates (dedupe_key
-    UNIQUE + do_nothing); malformed vendor rows skipped without killing the
-    batch; one adapter failing doesn't block the other.
+    UNIQUE + do_nothing); feeder rows with falsy timestamps skipped row-by-
+    row; a MALFORMED timestamp aborts only that adapter's batch for the
+    cycle (known gap: while the bad row sits in the fetch window it shadows
+    newer rows — per-row try/except fix queued for a feature session); one
+    adapter failing doesn't block the other.
   - health_change events on status transitions.
 
 ## Phase 3 — frontend units
