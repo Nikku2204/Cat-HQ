@@ -1,13 +1,18 @@
 # Build context is the repo root (backend image builds frontend + backend).
+# Patterns are **-prefixed where they must match at ANY depth — dockerignore
+# anchors bare names to the context root (backend/.venv, frontend/.env.local
+# etc. must never reach the builder or the image).
 .git
-.env
 data
 docs
 go2rtc
-frontend/node_modules
-frontend/dist
+**/.env
+**/.env.*
+**/.venv
+**/node_modules
+**/dist
 **/__pycache__
-*.pyc
-.venv
+**/*.pyc
 README.md
 CLAUDE.md
+scripts

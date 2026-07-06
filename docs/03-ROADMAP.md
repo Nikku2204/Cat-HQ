@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M5 — dashboard v1** (code complete, container verification pending; M1/M4 watched clean-cycle test still owed) |
-| Last updated | 2026-07-05 (session paused midday, resuming evening) |
-| Blockers | Docker Hub pulls flaky today (DeadlineExceeded ×2) — image with auth+PWA not deployed yet, container still runs the M4 build. M1 clean-cycle test needs owner watching the LR4 (see M1 note: one cycle fired accidentally, unattended). Remaining fill-in: Tapo model. Hardware purchase pending. |
+| Current milestone | **M5 — dashboard v1**: deployed + LAN-verified + reviewed; awaiting owner phone install for acceptance. Then M6 (video). M1/M4 watched clean-cycle test still owed. |
+| Last updated | 2026-07-05 (evening session) |
+| Blockers | M5 acceptance = owner installs PWA on phone. M1 clean-cycle test needs owner watching the LR4 (see M1 note: one cycle fired accidentally, unattended). Remaining fill-in: Tapo model. Hardware purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -85,21 +85,26 @@ broadcast). Formal acceptance rides on the M1 clean-cycle test: watch
 RDY→CCP arrive on two open clients within seconds.*
 
 ### M5 — Dashboard v1 (est. 20–30h)
-- [ ] PWA shell (installable, offline-tolerant), auth token login
-- [ ] Status cards: litter (drawer %, last cycle, clean button), feeder (last feed, feed button), per-device health badges
-- [ ] History view from `/events`
+- [x] PWA shell (installable, offline-tolerant), auth token login
+- [x] Status cards: litter (drawer %, last cycle, clean button), feeder (last feed, feed button), per-device health badges
+- [x] History view from `/events`
 
 **Accept:** installed on the owner's phone; all statuses live on LAN.
-*Progress 2026-07-05 (session paused): all three items CODE-COMPLETE, boxes
-stay unticked until container verification passes. Built: frontend/ (Vite 8 +
-React 19 + TS PWA, `npm run build` clean), backend bearer auth (REST + WS
-subprotocol; /health open), SPA served by the backend (one origin), multi-
-stage Dockerfile. NOT yet deployed — Docker Hub timeouts blocked the rebuild;
-old M4 image still running. Evening plan: rebuild → scripts/verify_m5.sh →
-scripts/smoke.cjs (read-only browser test) → review → tick boxes → owner
-installs on phone. NB: service worker/offline needs HTTPS → full offline
-tolerance is verified at M7 (Tailscale TLS); on LAN HTTP the shell installs
-via Add to Home Screen and degrades gracefully.*
+*Progress 2026-07-05 evening: deployed and verified on LAN — 17/17 HTTP/WS
+checks (scripts/verify_m5.sh) and 11/11 read-only browser checks
+(scripts/smoke.cjs) pass against the live container with real device data.
+Adversarial review (5 lenses, 27 agents): 17 confirmed findings, ALL fixed —
+notably: backend now REFUSES to start with an unset/default auth token (the
+repo-public "change-me" would have gated real hardware; the owner's .env was
+still on it — a random token was generated 2026-07-05, read it with
+`grep CATHQ_AUTH_TOKEN .env`); WS client socket lifecycle hardened (no
+parallel-socket cascades); ConfirmButton ignores double-tap pass-through
+(600ms arm delay); stale REST snapshots can't overwrite fresher WS state;
+/docs+/openapi.json disabled unless ENABLE_DOCS=true; missing assets 404
+instead of silently serving the shell; go2rtc pinned to 1.9.14.
+Milestone accepted once the owner installs it on the phone (Add to Home
+Screen at http://<mac-ip>:8000) and sees live statuses. Offline/service
+worker needs HTTPS → verified at M7.*
 
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC

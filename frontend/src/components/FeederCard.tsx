@@ -32,7 +32,9 @@ export default function FeederCard({ entry }: { entry?: DeviceEntry }) {
     return () => {
       stale = true
     }
-  }, [entry != null, todayCount])
+    // today_portions too: catches feeds when the count alone revisits an
+    // already-rendered value (e.g. midnight reset then first feed)
+  }, [entry != null, todayCount, attrs?.today_portions])
 
   if (!entry) {
     return (

@@ -41,6 +41,7 @@ export default defineConfig({
           /^\/health/,
           /^\/ws/,
           /^\/docs/,
+          /^\/redoc/,
           /^\/openapi/,
         ],
         // No runtimeCaching for the API on purpose: device state must never

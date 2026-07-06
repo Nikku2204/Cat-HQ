@@ -12,3 +12,6 @@ __pycache__/
 # frontend (from M5)
 node_modules/
 dist/
+
+# python build artifacts
+*.egg-info/

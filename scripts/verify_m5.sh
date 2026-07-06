@@ -44,7 +44,7 @@ chk "WS good token → 101"     101 "$(ws_status "$TOKEN")"
 chk "WS bad token → 403"      403 "$(ws_status not-the-token)"
 SUBPROTO=$(curl -s -i --max-time 2 -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
   -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-  -H "Sec-WebSocket-Protocol: cathq, $TOKEN" $B/ws 2>/dev/null | grep -i '^sec-websocket-protocol' | tr -d '\r')
+  -H "Sec-WebSocket-Protocol: cathq, $TOKEN" $B/ws 2>/dev/null | grep -i '^sec-websocket-protocol' | tr -d '\r' | tr '[:upper:]' '[:lower:]')
 chk "WS echoes cathq subprotocol" "sec-websocket-protocol: cathq" "$SUBPROTO"
 
 echo "---"

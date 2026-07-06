@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { fmtDay, fmtTime, lrStatus } from '../format'
 import type { EventOut } from '../types'
@@ -59,9 +59,13 @@ export default function HistoryView() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exhausted, setExhausted] = useState(false)
+  // bumped on every filter switch; in-flight responses from an older
+  // generation are dropped instead of clobbering the new filter's list
+  const generation = useRef(0)
 
   const load = useCallback(
     async (append: boolean) => {
+      const gen = generation.current
       setLoading(true)
       setError(null)
       try {
@@ -73,20 +77,22 @@ export default function HistoryView() {
           // is dropped by the id-dedupe below.
           until: append ? base[base.length - 1]?.ts_utc : undefined,
         })
+        if (gen !== generation.current) return
         const seen = new Set(base.map((e) => e.id))
         const fresh = r.events.filter((e) => !seen.has(e.id))
         setEvents([...base, ...fresh])
         setExhausted(fresh.length === 0 || r.events.length < PAGE)
       } catch (err) {
-        setError((err as Error).message)
+        if (gen === generation.current) setError((err as Error).message)
       } finally {
-        setLoading(false)
+        if (gen === generation.current) setLoading(false)
       }
     },
     [filter, events],
   )
 
   useEffect(() => {
+    generation.current += 1
     setEvents([])
     setExhausted(false)
     let stale = false

@@ -27,9 +27,12 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 def _token_matches(candidate: str) -> bool:
-    return secrets.compare_digest(
-        candidate.encode(), get_settings().cathq_auth_token.encode()
-    )
+    configured = get_settings().cathq_auth_token
+    # Fail closed on empty values: compare_digest(b"", b"") is True, which
+    # would let "Authorization: Bearer " through if the token were unset.
+    if not candidate or not configured:
+        return False
+    return secrets.compare_digest(candidate.encode(), configured.encode())
 
 
 async def require_auth(

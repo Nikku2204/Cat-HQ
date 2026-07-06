@@ -53,9 +53,11 @@ def _hub_notifier(device_id: str, adapter: DeviceAdapter, hub: Hub):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if settings.cathq_auth_token in ("", "change-me"):
-        logger.warning(
-            "CATHQ_AUTH_TOKEN is unset/default — anyone on the network can "
-            "control the devices. Generate one: openssl rand -hex 32"
+        # Fail closed: "change-me" is in the public repo and these routes
+        # move real hardware. A warning that scrolls by is not a defense.
+        raise RuntimeError(
+            "CATHQ_AUTH_TOKEN is unset or still the default — refusing to "
+            "start. Generate one: openssl rand -hex 32 (put it in .env)"
         )
     await init_db()
     hub = Hub()
@@ -94,7 +96,14 @@ async def lifespan(app: FastAPI):
     await dispose_db()
 
 
-app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
+# openapi/docs off unless ENABLE_DOCS=true: the schema is a free map of the
+# hardware-actuating control surface, and nothing in production needs it.
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.version,
+    lifespan=lifespan,
+    openapi_url="/openapi.json" if settings.enable_docs else None,
+)
 # M5: everything that reads device data or moves hardware requires the bearer
 # token. /health and the static PWA shell stay open (the shell contains no
 # data; the token gates every API call the shell makes).
@@ -117,7 +126,10 @@ def _static_response(path: str) -> FileResponse | None:
     candidate = (STATIC_DIR / path).resolve()
     if not candidate.is_relative_to(STATIC_DIR) or not candidate.is_file():
         return None
-    cache = _IMMUTABLE if path.startswith("assets/") else _NO_CACHE
+    # Cache policy keys off the RESOLVED location, not the raw request path:
+    # /assets/../index.html must never be stamped immutable.
+    rel = candidate.relative_to(STATIC_DIR).as_posix()
+    cache = _IMMUTABLE if rel.startswith("assets/") else _NO_CACHE
     return FileResponse(candidate, headers={"Cache-Control": cache})
 
 
@@ -168,6 +180,11 @@ def spa(path: str):
     response = _static_response(path)
     if response is not None:
         return response
+    # File-looking misses (hashed assets, icons, sw.js…) must 404 — a 200
+    # index.html here poisons caches and masks build/deploy mistakes. Only
+    # extensionless paths are SPA navigations.
+    if path.startswith("assets/") or "." in path.rsplit("/", 1)[-1]:
+        raise HTTPException(status_code=404)
     index = _static_response("index.html")
     if index is not None:
         return index

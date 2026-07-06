@@ -12,6 +12,9 @@ React PWA frontend, Tailscale for remote access.
 3. `docs/02-INTEGRATIONS.md` — per-vendor quirks and gotchas (important)
 4. `docs/03-ROADMAP.md` — milestones M0–M9 with acceptance criteria; check the
    status table and resume at the first unchecked box
+5. `docs/04-TESTING.md` — testing spec (tooling settled, phased test cases).
+   For a dedicated test-writing session: read it and execute the phases in
+   order. For feature sessions: from M6 on, new code lands with its tests.
 
 ## Working rules
 - The brief's working agreement ("Claude writes, owner runs") predates Claude
@@ -39,32 +42,27 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
-## Current state (2026-07-05, session 4 PAUSED mid-M5, resuming tonight)
-M0 ✅ M2 ✅ M3 ✅ accepted. M1/M4 still owe the owner-watched clean-cycle
-test (two /ws clients open, owner watches the globe). ⚠ INCIDENT
-2026-07-05 11:33 PDT: an M5 verify script accidentally fired
-POST /devices/litterrobot/clean UNATTENDED — a docker rebuild had
-silently failed (exit code masked by a pipe) so the OLD un-authed image
-was still serving, and the "expect 401" probe executed for real. Cycle
-completed fine (proves HTTP→Whisker→LR4 path), but tell the owner and
-let THEM decide if the watched M1/M4 test still needs a rerun. Rule
-added to memory: auth probes use GET-only endpoints; never pipe-mask
-build exit codes.
-M5 code-COMPLETE, NOT yet container-verified:
-- backend: bearer auth on /devices+/events (app/auth.py; /health stays
-  open), /ws auth via subprotocols ["cathq", token], SPA static serving
-  from app/static, multi-stage Dockerfile (build context = repo ROOT).
-- frontend/: Vite+React+TS PWA (Node 26 now on the Mac via brew);
-  `npm run build` passes clean. Login → live dashboard (WS store w/
-  reconnect) → litter+feeder cards → history view.
-BLOCKED ON: Docker Hub DeadlineExceeded pulling base-image metadata
-(twice today). Resume: retry `docker compose build backend` (check the
-REAL exit code), `docker compose up -d`, then scripts/verify_m5.sh
-(side-effect-free now), then scripts/smoke.cjs (playwright — install it
-OUTSIDE frontend/, chromium already cached), then (if owner re-approves
-workflows) scripts/m5-review.workflow.js, then tick docs/03 M5 boxes.
-M5 acceptance ultimately needs the owner's phone (Add to Home Screen).
+## Current state (2026-07-05, end of session 4)
+M0 ✅ M2 ✅ M3 ✅ accepted. M5 deployed + LAN-verified + adversarially
+reviewed (17 findings fixed, see docs/03 M5 note); ACCEPTANCE = owner
+installs the PWA on the phone (http://<mac-ip>:8000 → Add to Home
+Screen) and sees live statuses. CATHQ_AUTH_TOKEN was rotated off the
+default on 2026-07-05 (backend now refuses to start on ""/"change-me");
+owner reads it for login via `grep CATHQ_AUTH_TOKEN .env`. M1/M4 still
+owe the owner-watched clean-cycle test (two /ws clients, watch the
+globe) — note: one cycle fired accidentally unattended on 2026-07-05
+(see docs/03 M1 note + memory no-side-effect-probes; auth probes are
+GET-only now, never trust pipe-masked build exit codes).
+Next: M6 (go2rtc + Tapo camera — needs owner: enable third-party
+compat + camera account in the Tapo app, fill camera model into
+docs/00). Testing spec ready in docs/04-TESTING.md for a dedicated
+test session (owner plans to run one).
+Tooling: Node 26 via brew on the Mac; go2rtc pinned 1.9.14; playwright
+lives OUTSIDE frontend/ (its postinstall would bloat the Docker build);
+E2E scripts in scripts/ (verify_m5.sh, smoke.cjs — both read-only by
+design, they must NEVER hit clean/feed endpoints).
 Devices live (cat: Pinsu; feeder "chutku food" on the DEDICATED
 Petlibro account — never the owner's main account). Owner is
 token-cost-conscious: work solo, no multi-agent workflows unless
-explicitly requested (ultracode was enabled for session 4 only).
+explicitly requested (ultracode was enabled for session 4 only; the
+review workflow ran ~735k tokens, owner-approved).

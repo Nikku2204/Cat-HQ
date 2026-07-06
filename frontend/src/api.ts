@@ -27,6 +27,10 @@ let onUnauthorized: (() => void) | null = null
 export function setUnauthorizedHandler(fn: () => void): void {
   onUnauthorized = fn
 }
+/** For non-fetch auth failures (e.g. WS connect with no stored token). */
+export function fireUnauthorized(): void {
+  onUnauthorized?.()
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken()

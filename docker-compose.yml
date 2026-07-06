@@ -22,7 +22,7 @@ services:
       start_period: 10s
 
   go2rtc:
-    image: alexxit/go2rtc:latest  # pin to an exact tag after the first successful pull
+    image: alexxit/go2rtc:1.9.14  # pinned (was :latest) — bump deliberately
     container_name: cathq-go2rtc
     env_file: .env                # supplies TAPO_CAM_* to the ${vars} in go2rtc.yaml
     ports:

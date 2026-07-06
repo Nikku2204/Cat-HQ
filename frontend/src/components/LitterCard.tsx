@@ -20,20 +20,29 @@ export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
   const [lastCycle, setLastCycle] = useState<EventOut | null>(null)
   const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null)
 
-  // The event log is local SQLite — cheap to requery on every status change.
+  // The event log is local SQLite — cheap to requery. Keyed on cycle_count
+  // (increments exactly once per clean cycle, even if the intermediate
+  // status transitions were never rendered). Type-filtered queries so
+  // chatty telemetry can't push the last cycle out of the window.
   useEffect(() => {
     if (!entry) return
     let stale = false
-    api
-      .events({ device: 'litterrobot', limit: 30 })
-      .then((r) => {
-        if (!stale) setLastCycle(r.events.find(isCleanCycleEvent) ?? null)
+    Promise.all([
+      api.events({ device: 'litterrobot', type: 'status_change', limit: 20 }),
+      api.events({ device: 'litterrobot', type: 'activity', limit: 20 }),
+    ])
+      .then(([sc, act]) => {
+        if (stale) return
+        const newest = [...sc.events, ...act.events]
+          .filter(isCleanCycleEvent)
+          .sort((a, b) => (a.ts_utc < b.ts_utc ? 1 : -1))[0]
+        setLastCycle(newest ?? null)
       })
       .catch(() => {})
     return () => {
       stale = true
     }
-  }, [entry != null, statusCode])
+  }, [entry != null, attrs?.cycle_count])
 
   if (!entry) {
     return (
@@ -106,11 +115,9 @@ export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
               <dd>{lastCycle ? fmtDayTime(lastCycle.ts_utc) : '—'}</dd>
             </div>
             <div>
-              <dt>Cycles</dt>
-              <dd>
-                {attrs.cycle_count ?? '—'}
-                {attrs.cycle_capacity ? ` / ${attrs.cycle_capacity}` : ''}
-              </dd>
+              {/* cycle_count is lifetime; cycle_capacity is per-drawer — not a fraction */}
+              <dt>Cycles (lifetime)</dt>
+              <dd>{attrs.cycle_count ?? '—'}</dd>
             </div>
             <div>
               <dt>Pinsu weighed</dt>
