@@ -1,4 +1,4 @@
-import type { Devices, EventOut } from './types'
+import type { Devices, EventOut, HealthInfo } from './types'
 
 const TOKEN_KEY = 'cathq_token'
 
@@ -70,6 +70,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ portions }),
     }),
+
+  // Plug power (M5.5) — MAINS. Only ever called from hold-to-confirm
+  // controls; nothing in the app automates these.
+  plugOn: (plugId: string) =>
+    request<{ command: string; accepted: boolean }>(`/devices/${plugId}/on`, {
+      method: 'POST',
+    }),
+  plugOff: (plugId: string) =>
+    request<{ command: string; accepted: boolean }>(`/devices/${plugId}/off`, {
+      method: 'POST',
+    }),
+  plugCycle: (plugId: string) =>
+    request<{ command: string; accepted: boolean; off_seconds: number }>(
+      `/devices/${plugId}/cycle`,
+      { method: 'POST' },
+    ),
+
+  health: () => request<HealthInfo>('/health'),
 
   events: (params: {
     device?: string

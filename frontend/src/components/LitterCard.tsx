@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDayTime, relTime } from '../format'
-import type { DeviceEntry, EventOut, LitterAttrs } from '../types'
-import Bar from './Bar'
+import {
+  filterWeights,
+  fmtDayTime,
+  isLrFault,
+  LR_BUSY_CODES,
+  lrStatus,
+  relTime,
+} from '../format'
+import type { DeviceEntry, EventOut, LitterAttrs, PlugAttrs } from '../types'
 import ConfirmButton from './ConfirmButton'
+import Gauge from './Gauge'
 import HealthBadge from './HealthBadge'
+import PixelCat from './PixelCat'
+import PowerZone from './PowerZone'
+import Ring, { type RingMode } from './Ring'
+import Sparkline from './Sparkline'
+import Tube from './Tube'
 
 function isCleanCycleEvent(e: EventOut): boolean {
   return (
@@ -14,10 +26,20 @@ function isCleanCycleEvent(e: EventOut): boolean {
   )
 }
 
-export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
+export default function LitterCard({
+  entry,
+  plug,
+}: {
+  entry?: DeviceEntry
+  plug?: DeviceEntry
+}) {
   const attrs = entry?.state?.attributes as LitterAttrs | undefined
   const statusCode = attrs?.status_code
   const [lastCycle, setLastCycle] = useState<EventOut | null>(null)
+  const [presence, setPresence] = useState<{
+    lastVisit: string | null
+    weights: number[]
+  }>({ lastVisit: null, weights: [] })
   const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null)
 
   // The event log is local SQLite — cheap to requery. Keyed on cycle_count
@@ -44,6 +66,42 @@ export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
     }
   }, [entry != null, attrs?.cycle_count])
 
+  // Pinsu presence + weight trend (docs/05 Part B item 2). Every pet_weight
+  // event IS a visit (the scale fires when the cat steps in); "Cat Detected"
+  // activity rows cover visits the scale didn't log. Refetches when the live
+  // weight or cycle count moves.
+  useEffect(() => {
+    if (!entry) return
+    let stale = false
+    Promise.all([
+      api.events({ device: 'litterrobot', type: 'pet_weight', limit: 30 }),
+      api.events({ device: 'litterrobot', type: 'activity', limit: 30 }),
+    ])
+      .then(([w, act]) => {
+        if (stale) return
+        const catSeen = act.events.filter((e) =>
+          /cat detected/i.test(String(e.data['action'] ?? '')),
+        )
+        const lastVisit =
+          [w.events[0]?.ts_utc, catSeen[0]?.ts_utc]
+            .filter((t): t is string => Boolean(t))
+            .sort()
+            .pop() ?? null
+        const chrono = [...w.events]
+          .reverse()
+          .map((e) => Number(e.data['to'] ?? NaN))
+        setPresence({ lastVisit, weights: filterWeights(chrono).slice(-14) })
+      })
+      .catch(() => {})
+    return () => {
+      stale = true
+    }
+  }, [entry != null, attrs?.pet_weight_lbs, attrs?.cycle_count])
+
+  const plugAttrs = plug?.state?.attributes as PlugAttrs | undefined
+  const plugIsOff = plugAttrs?.power_on === false
+  const offlineBecausePlug = attrs?.is_online === false && plugIsOff
+
   if (!entry) {
     return (
       <section className="card">
@@ -51,13 +109,24 @@ export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
           <h2>Litter-Robot</h2>
         </div>
         <p className="muted">Not configured — set WHISKER_* in .env</p>
+        <PowerZone plugId="plug_litterrobot" plug={plug} />
       </section>
     )
   }
 
+  const fault = isLrFault(statusCode)
   const cycling = statusCode === 'CCP'
   const drawerPct = attrs?.waste_drawer_level_pct
   const litterPct = attrs?.litter_level_pct
+  const ringMode: RingMode = !attrs
+    ? 'off'
+    : attrs.is_online === false
+      ? 'off'
+      : fault
+        ? 'bad'
+        : LR_BUSY_CODES.has(String(statusCode ?? ''))
+          ? 'busy'
+          : 'ok'
 
   const clean = async () => {
     setNotice(null)
@@ -78,36 +147,71 @@ export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
 
       {attrs ? (
         <>
-          <div className="status-line">
-            <span className="status-big">
-              {attrs.status_text ?? attrs.status_code ?? '—'}
-            </span>
-            {attrs.is_sleeping && <span title="Sleep mode active">💤</span>}
-            {attrs.is_online === false && <span className="pill pill-bad">offline</span>}
+          <div className="litter-visual">
+            <div className="ring-block">
+              <Ring mode={ringMode}>
+                <PixelCat size={40} />
+              </Ring>
+              <div className={fault ? 'ring-status fault' : 'ring-status'}>
+                {fault ? (
+                  <>
+                    <span className="status-code">{String(statusCode)}</span>
+                    <span className="status-big">{lrStatus(statusCode)}</span>
+                  </>
+                ) : (
+                  <span className="status-big">
+                    {attrs.status_text ?? statusCode ?? '—'}
+                  </span>
+                )}
+                <span className="ring-flags">
+                  {attrs.is_sleeping && <span title="Sleep mode active">💤</span>}
+                  {attrs.is_online === false && (
+                    <span className="pill pill-bad">offline</span>
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className="litter-levels">
+              <Gauge
+                label="Drawer"
+                pct={drawerPct}
+                tone={
+                  attrs.is_waste_drawer_full
+                    ? 'bad'
+                    : drawerPct != null && drawerPct >= 85
+                      ? 'warn'
+                      : 'ok'
+                }
+              />
+              <Tube
+                label="Litter"
+                pct={litterPct}
+                tone={
+                  litterPct != null && litterPct < 15
+                    ? 'bad'
+                    : litterPct != null && litterPct < 30
+                      ? 'warn'
+                      : 'ok'
+                }
+              />
+            </div>
           </div>
 
-          <Bar
-            label="Waste drawer"
-            pct={drawerPct}
-            tone={
-              attrs.is_waste_drawer_full
-                ? 'bad'
-                : drawerPct != null && drawerPct >= 85
-                  ? 'warn'
-                  : 'ok'
-            }
-          />
-          <Bar
-            label="Litter level"
-            pct={litterPct}
-            tone={
-              litterPct != null && litterPct < 15
-                ? 'bad'
-                : litterPct != null && litterPct < 30
-                  ? 'warn'
-                  : 'ok'
-            }
-          />
+          <div className="presence-row">
+            <span aria-hidden="true">🐾</span>
+            <span>
+              Pinsu visited{' '}
+              {presence.lastVisit ? relTime(presence.lastVisit) : '—'}
+            </span>
+            {presence.weights.length >= 2 && (
+              <span className="weight-spark">
+                <Sparkline values={presence.weights} />
+                <span className="muted">
+                  {presence.weights[presence.weights.length - 1].toFixed(1)} lb
+                </span>
+              </span>
+            )}
+          </div>
 
           <dl className="meta">
             <div>
@@ -146,6 +250,17 @@ export default function LitterCard({ entry }: { entry?: DeviceEntry }) {
           No data — {entry.health.detail || 'adapter disconnected'}
         </p>
       )}
+
+      <PowerZone
+        plugId="plug_litterrobot"
+        plug={plug}
+        autoExpand={fault || offlineBecausePlug}
+        hint={
+          offlineBecausePlug
+            ? 'Plug is off — that’s why the robot is offline.'
+            : undefined
+        }
+      />
     </section>
   )
 }

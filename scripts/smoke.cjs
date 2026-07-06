@@ -1,18 +1,22 @@
-/* M5 smoke test — READ-ONLY (never presses Feed/Clean: those move hardware).
- * Verifies: login rejects a bad token, accepts the real one, dashboard
- * renders live cards over the WebSocket, history tab loads events.
- * The token is read from .env and never printed.
+/* M5/M5.5 smoke test — READ-ONLY (never presses Feed/Clean/Power: those move
+ * hardware or switch mains). Verifies: login rejects a bad token, accepts the
+ * real one, dashboard v2 renders live cards over the WebSocket (status ring,
+ * gauges, presence line, feed timeline), the header health strip opens, and
+ * the history tab loads events. The token is read from .env, never printed.
  *
  * Needs playwright OUTSIDE frontend/ (keep it out of frontend/package.json —
  * its postinstall would bloat the Docker build): from any temp dir,
  *   npm init -y && npm i playwright && npx playwright install chromium
  * then: node /Users/kolt/Downloads/cat-hq/scripts/smoke.cjs
- * Screenshots go to $SHOT_DIR (default: os tmpdir). */
+ * (or NODE_PATH=<that dir>/node_modules node scripts/smoke.cjs)
+ * Screenshots go to $SHOT_DIR (default: os tmpdir).
+ * $SMOKE_BASE overrides the target (default http://localhost:8000) — used
+ * pre-deploy against the vite dev server on :5173. */
 const { chromium } = require('playwright')
 const fs = require('fs')
 const os = require('os')
 
-const BASE = 'http://localhost:8000'
+const BASE = process.env.SMOKE_BASE || 'http://localhost:8000'
 const SHOT_DIR = process.env.SHOT_DIR || os.tmpdir()
 
 const token = fs
@@ -44,7 +48,7 @@ const check = (ok, name) => {
 
   await page.goto(BASE, { waitUntil: 'networkidle' })
   check(await page.locator('.login-card').isVisible(), 'login screen renders')
-  await page.screenshot({ path: `${SHOT_DIR}/m5-login.png` })
+  await page.screenshot({ path: `${SHOT_DIR}/m55-login.png` })
 
   // wrong token → inline error, stays on login
   await page.fill('input', 'definitely-wrong-token')
@@ -61,28 +65,61 @@ const check = (ok, name) => {
   await page.waitForSelector('.topbar', { timeout: 10000 })
   check(true, 'login succeeds with the real token')
 
-  // WS goes live and cards carry real state
-  await page.waitForSelector('.conn-live', { timeout: 10000 })
-  check(true, 'websocket connected (conn pill = live)')
-  const cards = page.locator('.card')
+  // WS goes live — v2 folds the connection dot into the header avatar
+  await page.waitForSelector('.avatar.conn-live', { timeout: 10000 })
+  check(true, 'websocket connected (avatar ring = live)')
+  const cards = page.locator('.card:not(.skeleton)')
+  await page.waitForSelector('.ring', { timeout: 10000 })
   check((await cards.count()) === 2, 'two device cards render')
-  const litterStatus = await page.locator('.status-big').first().textContent()
-  check(!!litterStatus && litterStatus !== '—', `litter status shows ("${litterStatus}")`)
+
+  // litter card v2: status ring + drawer gauge + litter tube + presence
+  const ringMode = await page.locator('.ring').getAttribute('data-mode')
+  check(!!ringMode && ringMode !== 'off', `status ring renders (mode=${ringMode})`)
+  const statusBig = await page.locator('.status-big').first().textContent()
+  check(!!statusBig && statusBig !== '—', `litter status shows ("${statusBig}")`)
+  check(await page.locator('.gauge-dial').isVisible(), 'drawer radial gauge renders')
+  check(await page.locator('.tube-body').isVisible(), 'litter fill tube renders')
+  const presence = await page.locator('.presence-row').textContent()
+  check(
+    (presence ?? '').includes('Pinsu visited'),
+    `presence line renders ("${(presence ?? '').trim()}")`,
+  )
+
+  // feeder card v2: 24h dot timeline + live metadata
+  check(await page.locator('.timeline-track').isVisible(), 'feed timeline renders')
   const feederVisible = await page
     .locator('.card', { hasText: 'Feeder' })
     .locator('.meta')
     .isVisible()
   check(feederVisible, 'feeder card shows live metadata')
-  const badges = await page.locator('.badge').allTextContents()
+  const badges = await page.locator('.card .badge').allTextContents()
   check(badges.length === 2, `health badges present (${badges.join(', ')})`)
-  await page.screenshot({ path: `${SHOT_DIR}/m5-dashboard.png` })
+  await page.screenshot({ path: `${SHOT_DIR}/m55-dashboard.png` })
 
-  // history tab
+  // header health strip (tap the avatar; /health is read-only)
+  await page.click('.brand')
+  // wait for the fetch to land, not just the strip container
+  await page.waitForFunction(
+    () => document.querySelector('.health-strip')?.textContent?.includes('up '),
+    { timeout: 5000 },
+  )
+  const strip = await page.locator('.health-strip').textContent()
+  check((strip ?? '').includes('up '), `health strip shows uptime ("${(strip ?? '').slice(0, 60)}…")`)
+  await page.screenshot({ path: `${SHOT_DIR}/m55-header-strip.png` })
+  await page.click('.brand') // collapse again
+
+  // history tab: rows + sticky day headers + the Power filter chip
   await page.click('.tab >> text=History')
   await page.waitForSelector('.event-row', { timeout: 10000 })
   const rows = await page.locator('.event-row').count()
   check(rows > 0, `history shows events (${rows} rows)`)
-  await page.screenshot({ path: `${SHOT_DIR}/m5-history.png` })
+  check(await page.locator('.day-head').first().isVisible(), 'day headers render')
+  check(
+    await page.locator('.chip', { hasText: 'Power' }).isVisible(),
+    'Power filter chip present',
+  )
+  await page.waitForTimeout(400) // let the pane-in fade settle before the shot
+  await page.screenshot({ path: `${SHOT_DIR}/m55-history.png` })
 
   // reload with stored token skips login
   await page.reload({ waitUntil: 'networkidle' })

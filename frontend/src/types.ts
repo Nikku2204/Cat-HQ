@@ -65,6 +65,30 @@ export interface LitterAttrs {
   firmware?: string
 }
 
+// plug attributes: backend/app/adapters/govee/adapter.py _poll_once()
+export interface PlugAttrs {
+  name?: string
+  model?: string
+  govee_device_id?: string
+  bound_to?: string
+  online?: boolean
+  power_on?: boolean
+}
+
+// GET /health (unauthenticated) — header uptime/health strip
+export interface HealthInfo {
+  status: string
+  app: string
+  version: string
+  build: string
+  uptime_seconds: number
+  server_time_utc: string
+  timezone: string
+  cats: string[]
+  configured: Record<string, boolean>
+  adapters: Record<string, AdapterHealth>
+}
+
 export interface FeederAttrs {
   name?: string
   serial?: string

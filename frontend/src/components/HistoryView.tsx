@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
-import { fmtDay, fmtTime, lrStatus } from '../format'
+import { fmtDay, fmtTime, isLrFault, lrStatus } from '../format'
 import type { EventOut } from '../types'
 
 const PAGE = 50
+// device filters + one type filter (power events span plug devices)
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'litterrobot', label: 'Litter' },
   { key: 'feeder', label: 'Feeder' },
+  { key: 'power', label: 'Power' },
 ] as const
 type FilterKey = (typeof FILTERS)[number]['key']
+
+function filterParams(filter: FilterKey): { device?: string; type?: string } {
+  if (filter === 'all') return {}
+  if (filter === 'power') return { type: 'power' }
+  return { device: filter }
+}
 
 function describe(e: EventOut): { icon: string; text: string } {
   const d = e.data
@@ -48,9 +56,57 @@ function describe(e: EventOut): { icon: string; text: string } {
       return { icon: '⚙️', text: `Feeder ${s('from')} → ${s('to')}` }
     case 'feed_count_change':
       return { icon: '🍽️', text: `Feeds today: ${s('from')} → ${s('to')}` }
+    // M5.5: mains power events, rendered distinctly. Two honest sources:
+    // "command" rows from the adapter's power sequence, "poll" rows from
+    // observed state diffs (e.g. a toggle in the Govee app).
+    case 'power': {
+      if (d['command']) {
+        const cmd = s('command')
+        const step = s('step')
+        if (step === 'failed') {
+          const during = d['during'] ? ` during ${s('during')}` : ''
+          return { icon: '⚡', text: `${cmd} FAILED${during}: ${s('error')}` }
+        }
+        if (cmd === 'power_cycle') {
+          return {
+            icon: '⚡',
+            text:
+              step === 'off'
+                ? `Power cycle — plug OFF (${s('delay_s')}s)`
+                : 'Power cycle — plug back ON',
+          }
+        }
+        return { icon: '⚡', text: cmd === 'power_on' ? 'Plug switched ON' : 'Plug switched OFF' }
+      }
+      return { icon: '⚡', text: `Plug ${d['to'] ? 'on' : 'off'} (observed)` }
+    }
     default:
       return { icon: '•', text: `${e.event_type} ${JSON.stringify(d)}` }
   }
+}
+
+/** Rows that deserve the red fault treatment (docs/05 Part B item 6). */
+function isFaultEvent(e: EventOut): boolean {
+  const d = e.data
+  switch (e.event_type) {
+    case 'status_change':
+      return isLrFault(d['to'])
+    case 'drawer_full':
+    case 'dispenser_blocked':
+      return Boolean(d['to'])
+    case 'health_change':
+      return d['to'] === 'error'
+    case 'power':
+      return d['step'] === 'failed'
+    default:
+      return false
+  }
+}
+
+function deviceChip(deviceId: string): { label: string; cls: string } {
+  if (deviceId === 'litterrobot') return { label: 'litter', cls: 'dev-litterrobot' }
+  if (deviceId.startsWith('plug_')) return { label: 'plug', cls: 'dev-plug' }
+  return { label: deviceId, cls: `dev-${deviceId}` }
 }
 
 export default function HistoryView() {
@@ -71,7 +127,7 @@ export default function HistoryView() {
       try {
         const base = append && events.length > 0 ? events : []
         const r = await api.events({
-          device: filter === 'all' ? undefined : filter,
+          ...filterParams(filter),
           limit: PAGE,
           // `until` is inclusive — the boundary event comes back again and
           // is dropped by the id-dedupe below.
@@ -99,7 +155,7 @@ export default function HistoryView() {
     setLoading(true)
     setError(null)
     api
-      .events({ device: filter === 'all' ? undefined : filter, limit: PAGE })
+      .events({ ...filterParams(filter), limit: PAGE })
       .then((r) => {
         if (stale) return
         setEvents(r.events)
@@ -138,15 +194,15 @@ export default function HistoryView() {
           const header = day !== lastDay ? day : null
           lastDay = day
           const { icon, text } = describe(e)
+          const chip = deviceChip(e.device_id)
+          const fault = isFaultEvent(e)
           return (
             <li key={e.id}>
               {header && <div className="day-head">{header}</div>}
-              <div className="event-row">
-                <span className="event-icon">{icon}</span>
+              <div className={fault ? 'event-row event-fault' : 'event-row'}>
+                <span className={`event-icon evicon ${chip.cls}`}>{icon}</span>
                 <span className="event-text">{text}</span>
-                <span className={`event-dev dev-${e.device_id}`}>
-                  {e.device_id === 'litterrobot' ? 'litter' : e.device_id}
-                </span>
+                <span className={`event-dev ${chip.cls}`}>{chip.label}</span>
                 <span className="event-time">{fmtTime(e.ts_utc)}</span>
               </div>
             </li>

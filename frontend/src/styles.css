@@ -1,4 +1,6 @@
-/* Cat HQ — dark, mobile-first. One phone, one household, no themes. */
+/* Cat HQ — "midnight den" (UX v2, docs/05 Part B).
+ * Dark, mobile-first. One phone, one household, no themes.
+ * Hand-rolled SVG + CSS only — zero runtime deps by design. */
 
 :root {
   --bg: #0f1216;
@@ -23,7 +25,10 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  /* den depth: a faint moonlit pool at the top, fading into the dark */
+  background:
+    radial-gradient(120% 60% at 50% -12%, #182030 0%, var(--bg) 60%) fixed,
+    var(--bg);
   color: var(--text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
@@ -138,13 +143,14 @@ button {
 /* ── cards ── */
 
 .card {
-  background: var(--card);
+  background: linear-gradient(180deg, var(--card-2), var(--card) 55%);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
 }
 
 .card-head {
@@ -472,4 +478,567 @@ button {
 .login-card input:focus {
   outline: 2px solid var(--accent);
   border-color: transparent;
+}
+
+/* ═══ UX v2 — "midnight den" additions (docs/05 Part B) ═══ */
+
+/* ── header: pixel-cat avatar with the connection dot folded in ── */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+}
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--card-2);
+  border: 2px solid var(--muted);
+  color: var(--accent);
+  transition: border-color 0.3s ease;
+}
+.avatar.conn-live {
+  border-color: var(--ok);
+}
+.avatar.conn-connecting {
+  animation: avatar-pulse 1.6s ease-in-out infinite;
+}
+.avatar.conn-offline {
+  border-color: var(--bad);
+}
+@keyframes avatar-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+.pixel-cat {
+  display: block;
+}
+
+.health-strip {
+  display: flex;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  font-size: 12px;
+  color: var(--muted);
+  animation: pane-in 0.2s ease;
+}
+.strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── skeleton shimmer (first snapshot loading) ── */
+
+.card.skeleton {
+  gap: 14px;
+}
+.sk {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--card-2) 25%, #28303d 37%, var(--card-2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.sk-title {
+  height: 18px;
+  width: 40%;
+}
+.sk-ring {
+  height: 96px;
+  width: 96px;
+  border-radius: 50%;
+}
+.sk-line {
+  height: 12px;
+  width: 90%;
+}
+.sk-line.short {
+  width: 60%;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* ── tab-switch slide ── */
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: pane-in 0.22s ease;
+}
+@keyframes pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+/* ── reconnect toast ── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  background: var(--card-2);
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line));
+  color: var(--ok);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  animation: toast-in 0.25s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+/* ── status ring (litter card) ── */
+
+.ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.ring-track {
+  fill: none;
+  stroke: var(--card-2);
+}
+.ring-arc {
+  fill: none;
+  transition: stroke-dasharray 0.6s ease;
+}
+.ring-ok .ring-arc {
+  stroke: var(--ok);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ok) 55%, transparent));
+}
+.ring-busy .ring-arc {
+  stroke: var(--warn);
+}
+.ring-busy svg {
+  animation: ring-spin 1.4s linear infinite;
+}
+.ring-bad .ring-arc {
+  stroke: var(--bad);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--bad) 60%, transparent));
+}
+.ring-off .ring-arc {
+  stroke: var(--muted);
+  opacity: 0.5;
+}
+@keyframes ring-spin {
+  from {
+    transform: rotate(-90deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+.ring-inner {
+  position: relative;
+  z-index: 1;
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+
+.litter-visual {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ring-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.ring-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.ring-status .status-big {
+  font-size: 18px;
+}
+.ring-status.fault .status-big,
+.ring-status.fault .status-code {
+  color: var(--bad);
+}
+.status-code {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.ring-flags:empty {
+  display: none;
+}
+.litter-levels {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+/* ── radial gauge + fill tube ── */
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.gauge-dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.gauge-dial svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.gauge-arc {
+  fill: none;
+  transition: stroke-dasharray 0.6s ease;
+}
+.tone-ok {
+  stroke: var(--ok);
+}
+.tone-warn {
+  stroke: var(--warn);
+}
+.tone-bad {
+  stroke: var(--bad);
+}
+.gauge-val {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+.viz-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tube {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.tube-body {
+  width: 22px;
+  height: 60px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.tube-fill {
+  width: 100%;
+  transition: height 0.6s ease;
+}
+.tube-fill.tone-ok {
+  background: var(--ok);
+}
+.tube-fill.tone-warn {
+  background: var(--warn);
+}
+.tube-fill.tone-bad {
+  background: var(--bad);
+}
+.tube-val {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Pinsu presence + weight sparkline ── */
+
+.presence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+.weight-spark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.spark polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.spark circle {
+  fill: var(--accent);
+}
+
+/* ── feeder: 24h dot timeline + warning chips + countdown ── */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.timeline-track {
+  position: relative;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+}
+.timeline-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+.timeline-dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.timeline-now {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--warn);
+  transform: translateX(-50%);
+}
+.timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.warn-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wchip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.wchip-bad {
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+  color: var(--bad);
+}
+.wchip-warn {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+.wchip-info {
+  background: color-mix(in srgb, var(--info) 18%, transparent);
+  color: var(--info);
+}
+
+.countdown {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── the RED ZONE: mains power controls (docs/05 safety rule 4) ── */
+
+.power-zone {
+  margin-top: 4px;
+  border-top: 1px dashed color-mix(in srgb, var(--bad) 45%, var(--line));
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.power-zone.open {
+  margin: 4px -16px -16px;
+  padding: 8px 16px 16px;
+  background: color-mix(in srgb, var(--bad) 7%, transparent);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.power-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.power-title {
+  font-weight: 700;
+  color: var(--bad);
+}
+.power-state {
+  flex: 1;
+  text-align: left;
+}
+.power-state.off {
+  color: var(--bad);
+  font-weight: 700;
+}
+.power-hint {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bad);
+}
+.power-warning {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.power-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn.hold {
+  position: relative;
+  overflow: hidden;
+  min-height: 48px;
+  border: 1px solid color-mix(in srgb, var(--bad) 50%, transparent);
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  color: var(--bad);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.btn.hold.secondary {
+  background: transparent;
+}
+.btn.hold:disabled {
+  opacity: 0.45;
+}
+.hold-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: color-mix(in srgb, var(--bad) 38%, transparent);
+}
+.btn.hold.holding .hold-fill {
+  width: 100%;
+  transition: width 1.5s linear;
+}
+.hold-label {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── history v2: sticky days, device-tinted icons, fault rows ── */
+
+.day-head {
+  position: sticky;
+  top: calc(46px + env(safe-area-inset-top));
+  z-index: 5;
+  background: var(--bg);
+}
+.event-row {
+  align-items: center;
+}
+.evicon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--card-2);
+  font-size: 15px;
+}
+.evicon.dev-litterrobot {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.evicon.dev-feeder {
+  background: color-mix(in srgb, var(--info) 16%, transparent);
+}
+.evicon.dev-plug {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+}
+.event-dev.dev-plug {
+  color: var(--warn);
+}
+.event-fault {
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
+  border-radius: 8px;
+}
+.event-fault .event-text {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+/* ── prefers-reduced-motion: everything calms down (docs/05 Part B) ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-busy svg,
+  .avatar.conn-connecting,
+  .sk,
+  .pane,
+  .toast,
+  .health-strip {
+    animation: none !important;
+  }
+  .bar-fill,
+  .ring-arc,
+  .gauge-arc,
+  .tube-fill,
+  .avatar {
+    transition: none !important;
+  }
+  /* no fake progress: the label ("Keep holding…") carries the state */
+  .btn.hold.holding .hold-fill {
+    width: 0;
+    transition: none !important;
+  }
 }

@@ -272,4 +272,101 @@ describe('HistoryView', () => {
     // the empty-state line is suppressed while an error is shown
     expect(screen.queryByText('No events yet.')).not.toBeInTheDocument()
   })
+
+  // ── M5.5 UX v2: power events, fault highlighting, Power filter ──────────
+
+  it('renders power events distinctly for both sources (command + observed)', async () => {
+    eventsMock.mockResolvedValueOnce(
+      page([
+        ev({
+          device_id: 'plug_litterrobot',
+          event_type: 'power',
+          source: 'command',
+          data: { command: 'power_cycle', step: 'off', delay_s: 8 },
+          ts_utc: ts(0),
+        }),
+        ev({
+          device_id: 'plug_litterrobot',
+          event_type: 'power',
+          source: 'command',
+          data: { command: 'power_cycle', step: 'on' },
+          ts_utc: ts(1),
+        }),
+        ev({
+          device_id: 'plug_litterrobot',
+          event_type: 'power',
+          source: 'command',
+          data: { command: 'power_on', step: 'done' },
+          ts_utc: ts(2),
+        }),
+        ev({
+          device_id: 'plug_litterrobot',
+          event_type: 'power',
+          source: 'poll',
+          data: { field: 'power_on', from: true, to: false },
+          ts_utc: ts(3),
+        }),
+      ]),
+    )
+    render(<HistoryView />)
+
+    expect(await screen.findByText('Power cycle — plug OFF (8s)')).toBeInTheDocument()
+    expect(screen.getByText('Power cycle — plug back ON')).toBeInTheDocument()
+    expect(screen.getByText('Plug switched ON')).toBeInTheDocument()
+    expect(screen.getByText('Plug off (observed)')).toBeInTheDocument()
+    // plug devices share one "plug" chip
+    expect(screen.getAllByText('plug')).toHaveLength(4)
+  })
+
+  it('highlights fault rows red (LR fault code, failed power step)', async () => {
+    eventsMock.mockResolvedValueOnce(
+      page([
+        ev({
+          device_id: 'litterrobot',
+          event_type: 'status_change',
+          data: { from: 'CCP', to: 'PD' },
+          ts_utc: ts(0),
+        }),
+        ev({
+          device_id: 'plug_litterrobot',
+          event_type: 'power',
+          source: 'command',
+          data: { command: 'power_cycle', step: 'failed', during: 'on', error: 'HTTP 500' },
+          ts_utc: ts(1),
+        }),
+        ev({ event_type: 'feed', data: { portions: 2 }, ts_utc: ts(2) }),
+      ]),
+    )
+    const { container } = render(<HistoryView />)
+
+    await screen.findByText('Fed 2 portions')
+    expect(container.querySelectorAll('.event-fault')).toHaveLength(2)
+    expect(
+      screen.getByText('power_cycle FAILED during on: HTTP 500'),
+    ).toBeInTheDocument()
+  })
+
+  it('the Power chip filters by event type, not device', async () => {
+    eventsMock
+      .mockResolvedValueOnce(page([ev({ data: { portions: 3 }, ts_utc: ts(0) })]))
+      .mockResolvedValueOnce(
+        page([
+          ev({
+            device_id: 'plug_litterrobot',
+            event_type: 'power',
+            source: 'command',
+            data: { command: 'power_off', step: 'done' },
+            ts_utc: ts(1),
+          }),
+        ]),
+      )
+    const user = userEvent.setup()
+    render(<HistoryView />)
+    await screen.findByText('Fed 3 portions')
+
+    await user.click(screen.getByRole('button', { name: 'Power' }))
+
+    expect(await screen.findByText('Plug switched OFF')).toBeInTheDocument()
+    expect(eventsMock).toHaveBeenLastCalledWith({ type: 'power', limit: 50 })
+  })
 })

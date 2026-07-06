@@ -5,7 +5,18 @@
 // toLocale*String, so those assertions are deliberately loose (shape, not an
 // exact locale string) to stay independent of the dev box's locale/timezone.
 
-import { fmtTime, fmtDay, fmtDayTime, relTime, lrStatus, LR_STATUS } from './format'
+import {
+  filterWeights,
+  fmtCountdown,
+  fmtDay,
+  fmtDayTime,
+  fmtTime,
+  fmtUptime,
+  isLrFault,
+  lrStatus,
+  LR_STATUS,
+  relTime,
+} from './format'
 
 // Saturday 2026-07-04 12:00 *local* time — built with the local-time Date
 // constructor so the "same calendar day" comparisons in fmtDay (toDateString
@@ -138,5 +149,71 @@ describe('fmtDayTime', () => {
 
   it('is Yesterday-prefixed for a previous-day timestamp', () => {
     expect(fmtDayTime(new Date(2026, 6, 3, 9, 5).toISOString())).toMatch(/^Yesterday /)
+  })
+})
+
+// ── M5.5 UX v2 helpers ──────────────────────────────────────────────────
+
+describe('fmtCountdown', () => {
+  const at = (minutes: number) =>
+    new Date(Date.now() + minutes * 60_000).toISOString()
+
+  it('renders hours + minutes ("in 2h 14m")', () => {
+    expect(fmtCountdown(at(134))).toBe('in 2h 14m')
+  })
+
+  it('renders bare minutes under an hour', () => {
+    expect(fmtCountdown(at(45))).toBe('in 45m')
+  })
+
+  it('renders days past 24h', () => {
+    expect(fmtCountdown(at(26 * 60))).toBe('in 1d 2h')
+  })
+
+  it('collapses to "now" once due (within 30s or past)', () => {
+    expect(fmtCountdown(new Date(Date.now() + 10_000).toISOString())).toBe('now')
+    expect(fmtCountdown(new Date(Date.now() - 60_000).toISOString())).toBe('now')
+  })
+
+  it('is "—" for missing or unparseable input', () => {
+    expect(fmtCountdown(null)).toBe('—')
+    expect(fmtCountdown(undefined)).toBe('—')
+    expect(fmtCountdown('not-a-date')).toBe('—')
+  })
+})
+
+describe('fmtUptime', () => {
+  it('minutes / hours / days shapes', () => {
+    expect(fmtUptime(59 * 60)).toBe('59m')
+    expect(fmtUptime(3 * 3600 + 12 * 60)).toBe('3h 12m')
+    expect(fmtUptime(26 * 3600)).toBe('1d 2h')
+  })
+})
+
+describe('isLrFault', () => {
+  it('flags the mechanical/user-intervention codes only', () => {
+    for (const code of ['CSF', 'PD', 'OTF', 'BR']) expect(isLrFault(code)).toBe(true)
+    for (const code of ['RDY', 'CCP', 'CCC', 'CST', 'DFS', '', null, undefined])
+      expect(isLrFault(code)).toBe(false)
+  })
+})
+
+describe('filterWeights', () => {
+  it('drops samples >20% off the trailing median (scale noise)', () => {
+    // 4.6 is a half-entry blip against a ~9.4 lb cat
+    expect(filterWeights([9.4, 9.5, 4.6, 9.3, 9.6])).toEqual([9.4, 9.5, 9.3, 9.6])
+  })
+
+  it('drops zero / negative / non-finite samples outright', () => {
+    expect(filterWeights([9.4, 0, 9.5, -1, NaN, 9.3])).toEqual([9.4, 9.5, 9.3])
+  })
+
+  it('keeps genuine gradual drift (each step within tolerance)', () => {
+    const drift = [9.0, 9.2, 9.4, 9.7, 10.0, 10.3]
+    expect(filterWeights(drift)).toEqual(drift)
+  })
+
+  it('passes through short series untouched (nothing to median against)', () => {
+    expect(filterWeights([12, 3])).toEqual([12, 3])
   })
 })

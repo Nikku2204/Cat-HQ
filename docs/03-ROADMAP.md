@@ -140,6 +140,22 @@ the v1 API; both bindings resolve uniquely to H5083 plugs ("chutku potty"
 The toggle/power-cycle drill still waits for the owner (mains rule). LR4
 power-restore behavior: still UNKNOWN, document here after the drill.*
 
+*Part B implemented 2026-07-05 (late session): "midnight den" UX v2 — status
+ring + pixel-cat glyph, drawer radial gauge, litter fill tube, Pinsu presence
+line + noise-filtered weight sparkline, feeder 24h dot-timeline + live
+next-feed countdown, warning chips, header pixel-cat avatar with the
+connection ring folded in + tap-to-expand health strip, reconnect toast
+(banner only after 60s continuous offline), skeleton shimmer, tab slide,
+history v2 (sticky day headers, device-tinted icons, red fault rows, power
+events distinct, Power filter chip), and the RED power zone (HoldButton ≥1.5s,
+auto-expands on fault, "plug is off — that's why" hint). Zero new runtime
+deps; prefers-reduced-motion respected; precache 236 KiB (<300); touch ≥44px.
+Frontend suite now 125 (was 85), backend 282; smoke.cjs extended read-only,
+19/19 against the new build + live backend via the dev proxy. Screenshots
+posted for owner approval (login, dashboard, plug row, simulated PD fault +
+power zone, history, simulated power history, health strip) — docker rebuild
+deliberately deferred until the owner approves the look.*
+
 **Accept:** a stuck LR4 can be power-cycled from the phone with recovery visible in the app; owner likes the new look on their phone.
 
 ### M6 — Live video (est. 12–20h)

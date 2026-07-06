@@ -1,6 +1,7 @@
-// docs/04-TESTING.md Phase 3 — FeederCard: not-configured placeholder,
-// "No data — <detail>" fallback, three independent warning banners
-// (offline / dispenser_blocked / food_low), feed happy path through the
+// docs/04-TESTING.md Phase 3 (updated for M5.5 UX v2) — FeederCard:
+// not-configured placeholder, "No data — <detail>" fallback, three
+// independent warning CHIPS (offline / dispenser_blocked / food_low),
+// 24h feed dot-timeline, next-feed countdown, feed happy path through the
 // real ConfirmButton (fake timers), stepper 1..12 clamp + api.feed(2),
 // failure notice, and the disabled matrix (offline / blocked).
 import { act, fireEvent, render, screen } from '@testing-library/react'
@@ -150,59 +151,85 @@ describe('FeederCard', () => {
     expect(
       screen.getByText(`${fmtDayTime('2026-07-05T08:00:00Z')} · 4p`),
     ).toBeInTheDocument()
-    expect(
-      screen.getByText(`${fmtTime('2026-07-05T17:00:00Z')} · 2p`),
-    ).toBeInTheDocument()
+    // next feed renders a countdown plus the absolute time · portions
+    expect(screen.getByText('Next feed').nextElementSibling).toHaveTextContent(
+      `${fmtTime('2026-07-05T17:00:00Z')} · 2p`,
+    )
 
     expect(mockEvents).toHaveBeenCalledWith({
       device: 'feeder',
       type: 'feed',
-      limit: 1,
+      limit: 60,
     })
 
-    // Healthy: no banners, button enabled
-    expect(
-      screen.queryByText('Feeder offline — check power/wifi'),
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('Dispenser blocked!')).not.toBeInTheDocument()
-    expect(
-      screen.queryByText('Food low — refill the hopper'),
-    ).not.toBeInTheDocument()
+    // Healthy: no warning chips, button enabled
+    expect(screen.queryByText('📶 offline')).not.toBeInTheDocument()
+    expect(screen.queryByText('⚠️ blocked')).not.toBeInTheDocument()
+    expect(screen.queryByText('🍚 food low')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Feed 1 portion' })).toBeEnabled()
   })
 
-  it('renders only the offline banner when online is false', async () => {
+  it('renders only the offline chip when online is false', async () => {
     render(<FeederCard entry={feederEntry({ online: false })} />)
     await flushEffects()
-    expect(
-      screen.getByText('Feeder offline — check power/wifi'),
-    ).toBeInTheDocument()
-    expect(screen.queryByText('Dispenser blocked!')).not.toBeInTheDocument()
-    expect(
-      screen.queryByText('Food low — refill the hopper'),
-    ).not.toBeInTheDocument()
+    expect(screen.getByText('📶 offline')).toBeInTheDocument()
+    expect(screen.queryByText('⚠️ blocked')).not.toBeInTheDocument()
+    expect(screen.queryByText('🍚 food low')).not.toBeInTheDocument()
   })
 
-  it('renders only the blocked banner when dispenser_blocked is true', async () => {
+  it('renders only the blocked chip when dispenser_blocked is true', async () => {
     render(<FeederCard entry={feederEntry({ dispenser_blocked: true })} />)
     await flushEffects()
-    expect(screen.getByText('Dispenser blocked!')).toBeInTheDocument()
-    expect(
-      screen.queryByText('Feeder offline — check power/wifi'),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByText('Food low — refill the hopper'),
-    ).not.toBeInTheDocument()
+    expect(screen.getByText('⚠️ blocked')).toBeInTheDocument()
+    expect(screen.queryByText('📶 offline')).not.toBeInTheDocument()
+    expect(screen.queryByText('🍚 food low')).not.toBeInTheDocument()
   })
 
-  it('renders only the food-low banner when food_low is true', async () => {
+  it('renders only the food-low chip when food_low is true', async () => {
     render(<FeederCard entry={feederEntry({ food_low: true })} />)
     await flushEffects()
-    expect(screen.getByText('Food low — refill the hopper')).toBeInTheDocument()
-    expect(
-      screen.queryByText('Feeder offline — check power/wifi'),
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('Dispenser blocked!')).not.toBeInTheDocument()
+    expect(screen.getByText('🍚 food low')).toBeInTheDocument()
+    expect(screen.queryByText('📶 offline')).not.toBeInTheDocument()
+    expect(screen.queryByText('⚠️ blocked')).not.toBeInTheDocument()
+  })
+
+  it('places today\'s feeds on the 24h timeline, dot size scaling with portions', async () => {
+    const today9am = new Date()
+    today9am.setHours(9, 0, 0, 0)
+    const today7am = new Date()
+    today7am.setHours(7, 0, 0, 0)
+    mockEvents.mockResolvedValue({
+      count: 3,
+      events: [
+        feedEvt({ id: 3, ts_utc: today9am.toISOString(), data: { portions: 4 } }),
+        feedEvt({ id: 2, ts_utc: today7am.toISOString(), data: { portions: 1 } }),
+        // yesterday's feed must NOT get a dot
+        feedEvt({
+          id: 1,
+          ts_utc: new Date(today9am.getTime() - 86_400_000).toISOString(),
+          data: { portions: 2 },
+        }),
+      ],
+    })
+    const { container } = render(<FeederCard entry={feederEntry()} />)
+    await flushEffects()
+
+    const dots = container.querySelectorAll('.timeline-dot')
+    expect(dots).toHaveLength(2)
+    const [d7, d9] = [...dots] as HTMLElement[] // chronological (reversed)
+    expect(parseFloat(d7.style.left)).toBeCloseTo((7 / 24) * 100, 0)
+    expect(parseFloat(d9.style.left)).toBeCloseTo((9 / 24) * 100, 0)
+    expect(parseFloat(d9.style.width)).toBeGreaterThan(parseFloat(d7.style.width))
+    expect(container.querySelector('.timeline-now')).toBeInTheDocument()
+  })
+
+  it('shows a live countdown for a future next feed', async () => {
+    const inTwoHours = new Date(Date.now() + 2 * 3600_000 + 14 * 60_000).toISOString()
+    const { container } = render(
+      <FeederCard entry={feederEntry({ next_feed_time_utc: inTwoHours })} />,
+    )
+    await flushEffects()
+    expect(container.querySelector('.countdown')).toHaveTextContent(/^in 2h 1[34]m$/)
   })
 
   it('disables the feed button when offline or blocked', async () => {
