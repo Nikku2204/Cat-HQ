@@ -121,6 +121,29 @@ const check = (ok, name) => {
   await page.waitForTimeout(400) // let the pane-in fade settle before the shot
   await page.screenshot({ path: `${SHOT_DIR}/m55-history.png` })
 
+  // ── The Den (M5.7) — READ-ONLY: the tab only reads /events, never a command
+  await page.click('.tab >> text=Den')
+  await page.waitForSelector('.den-hero', { timeout: 10000 })
+  check(await page.locator('.den-hero').isVisible(), 'Den hero renders')
+  const rings = await page.locator('.goalring-arc').count()
+  check(rings >= 1, `hero goal ring(s) render (${rings} arc${rings === 1 ? '' : 's'})`)
+  const heroName = await page.locator('.den-name').textContent()
+  check(heroName === 'Pinsu', `hero names the cat ("${heroName}")`)
+  check(await page.locator('.den-bento').isVisible(), 'vitals bento renders')
+  const tiles = await page.locator('.den-tile').count()
+  check(tiles === 4, `four vitals tiles render (${tiles})`)
+  check(
+    await page.locator('.den-seclabel', { hasText: 'Weight watch' }).isVisible(),
+    'weight watch section renders',
+  )
+  // the page body must never scroll sideways (heatmap etc. scroll internally)
+  const noHScroll = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+  )
+  check(noHScroll, 'page body does not scroll horizontally')
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: `${SHOT_DIR}/m57-den.png`, fullPage: true })
+
   // reload with stored token skips login
   await page.reload({ waitUntil: 'networkidle' })
   check(

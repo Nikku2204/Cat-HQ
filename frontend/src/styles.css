@@ -1080,6 +1080,408 @@ button {
   font-weight: 600;
 }
 
+/* ═══ 🌙 The Den — insights dashboard (M5.7, docs/06) ═══
+ * All classes are `den-*`/`goalring-*` prefixed: the mock reuses names
+ * (.chip/.tile/.band) that already mean other things globally. Hand-rolled
+ * SVG + CSS, zero deps, cold-start-aware, reduced-motion respected. */
+
+.den-empty h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* ── goal ring (new primitive; T2) ── */
+
+.goalring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.goalring svg {
+  transform: rotate(-90deg); /* start the arc at 12 o'clock */
+}
+.goalring-track {
+  fill: none;
+  stroke: var(--card-2);
+}
+.goalring-arc {
+  fill: none;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.goalring-over {
+  fill: none;
+}
+.goalring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ── hero ── */
+
+.den-hero {
+  position: relative;
+  overflow: hidden;
+}
+.den-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.den-amb-night {
+  background: radial-gradient(
+    75% 90% at 82% 6%,
+    color-mix(in srgb, var(--info) 15%, transparent),
+    transparent 60%
+  );
+}
+.den-amb-dawn {
+  background: radial-gradient(
+    80% 95% at 80% 4%,
+    color-mix(in srgb, var(--accent) 20%, transparent),
+    transparent 62%
+  );
+}
+.den-amb-day {
+  background: radial-gradient(
+    85% 95% at 80% 2%,
+    color-mix(in srgb, var(--info) 12%, transparent),
+    transparent 58%
+  );
+}
+.den-amb-dusk {
+  background: radial-gradient(
+    80% 95% at 80% 5%,
+    color-mix(in srgb, var(--accent) 16%, transparent),
+    transparent 60%
+  );
+}
+.den-celestial {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+}
+.den-moon {
+  background: radial-gradient(circle at 35% 35%, #eef2f8, #cbd3df);
+  box-shadow: 0 0 16px rgba(220, 230, 245, 0.45);
+  opacity: 0.85;
+}
+.den-sun {
+  background: radial-gradient(circle at 40% 40%, #ffe8b8, var(--accent));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
+  opacity: 0.9;
+}
+.den-hero-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.den-hero-photo {
+  width: 70px;
+  height: 70px;
+}
+.den-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.den-name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.den-mood {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.den-mood .pixel-cat {
+  flex: none;
+  color: var(--accent);
+}
+.den-wpill {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+.den-wpill b {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.den-wpill small {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* den chips (distinct from the global history .chip) */
+.den-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.den-chip-ok {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+.den-chip-warn {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  color: var(--warn);
+}
+.den-chip-info {
+  background: color-mix(in srgb, var(--info) 16%, transparent);
+  color: var(--info);
+}
+.den-chip-mut {
+  background: var(--card-2);
+  color: var(--muted);
+}
+
+.den-legend {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.den-k {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.den-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ── section labels ── */
+
+.den-seclabel {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+.den-seclabel-loose {
+  display: block;
+  margin: 0 2px 8px;
+}
+
+/* ── vitals bento ── */
+
+.den-bento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.den-tile {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.den-tlabel {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+.den-tval {
+  font-size: 23px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.den-tval small {
+  font-size: 12px;
+  font-weight: 700;
+}
+.den-tval-sm {
+  font-size: 15px;
+  line-height: 1.25;
+}
+.den-sub {
+  font-size: 12px;
+  font-weight: 600;
+}
+.den-tcmp {
+  font-size: 12px;
+}
+.den-tcmp.ok {
+  color: var(--ok);
+}
+.den-tcmp.mut {
+  color: var(--muted);
+}
+.den-tcmp.warn {
+  color: var(--warn);
+}
+.den-learning {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+.den-minifill {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--card-2);
+  overflow: hidden;
+  margin-top: 2px;
+}
+.den-minifill i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.den-minifill-empty {
+  opacity: 0.5;
+}
+.den-streak {
+  display: flex;
+  gap: 3px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.den-streak i {
+  width: 9px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--ok);
+  opacity: 0.85;
+}
+.den-streak i.off {
+  background: var(--bad);
+  opacity: 0.75;
+}
+.den-streak i.pre {
+  background: var(--card-2);
+  opacity: 0.8;
+}
+
+/* ── charts (shared Sparkline, stretched but uniform so dots stay round) ── */
+
+svg.spark.den-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.den-band {
+  fill: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+.den-wmed {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+.spark.den-chart polyline {
+  vector-effect: non-scaling-stroke;
+}
+.den-mark {
+  fill: var(--muted);
+}
+.den-mark-lo {
+  fill: var(--info);
+}
+.den-mark-hi {
+  fill: var(--accent);
+}
+.den-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.den-chart-axis .ok {
+  color: var(--ok);
+}
+
+/* ── weight watch ── */
+
+.den-headrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.den-toggle {
+  display: flex;
+  gap: 4px;
+}
+.den-toggle button {
+  font-size: 11px;
+  padding: 5px 11px;
+  min-height: 32px;
+  border-radius: 999px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.den-toggle button.on {
+  background: var(--accent);
+  color: #201409;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.den-weight-now {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.den-weight-now b {
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.den-weight-now small {
+  font-size: 13px;
+  font-weight: 600;
+}
+.den-nudge {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.den-cold {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
 /* ── prefers-reduced-motion: everything calms down (docs/05 Part B) ── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1095,7 +1497,9 @@ button {
   .ring-arc,
   .gauge-arc,
   .tube-fill,
-  .avatar {
+  .avatar,
+  .goalring-arc,
+  .den-minifill i {
     transition: none !important;
   }
   /* no fake progress: the label ("Keep holding…") carries the state */

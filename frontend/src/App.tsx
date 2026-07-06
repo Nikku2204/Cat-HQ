@@ -3,12 +3,15 @@ import { api, clearToken, getToken, setUnauthorizedHandler } from './api'
 import { fmtUptime } from './format'
 import { useLive, type ConnStatus } from './useLive'
 import type { HealthInfo } from './types'
+import Den from './components/Den'
 import FeederCard from './components/FeederCard'
 import HealthBadge from './components/HealthBadge'
 import HistoryView from './components/HistoryView'
 import LitterCard from './components/LitterCard'
 import Login from './components/Login'
 import PixelCat from './components/PixelCat'
+
+type Tab = 'status' | 'den' | 'history'
 
 // The reconnect toast covers brief blips; the full-width banner is reserved
 // for real outages (docs/05 Part B item 4).
@@ -96,7 +99,7 @@ function SkeletonCard() {
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const { devices, conn } = useLive()
-  const [tab, setTab] = useState<'status' | 'history'>('status')
+  const [tab, setTab] = useState<Tab>('status')
   const [stripOpen, setStripOpen] = useState(false)
   const [longOffline, setLongOffline] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -192,6 +195,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                 />
               </>
             )
+          ) : tab === 'den' ? (
+            <Den devices={devices} />
           ) : (
             <HistoryView />
           )}
@@ -210,6 +215,12 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           onClick={() => setTab('status')}
         >
           🏠 Home
+        </button>
+        <button
+          className={tab === 'den' ? 'tab active' : 'tab'}
+          onClick={() => setTab('den')}
+        >
+          🌙 Den
         </button>
         <button
           className={tab === 'history' ? 'tab active' : 'tab'}

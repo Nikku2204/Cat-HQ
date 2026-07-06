@@ -44,6 +44,33 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
+## M5.7 "The Den" MUST v1 BUILT 2026-07-06 (awaiting owner phone approval)
+Third 🌙 Den tab (between Home and Diary) — the insights dashboard, MUST
+sections only per docs/06: "Pinsu, right now" hero (dual `GoalRing` +
+weight pill + mood mascot + ambient time-of-day scene + live litter chip),
+2×2 vitals bento (weight/visits/meals/care-streak), and un-paywalled Weight
+Watch (band + 7-visit rolling-median line + 30/90d toggle + calm amber
+"worth a weigh-in" only on a SUSTAINED dip). Built entirely CLIENT-SIDE on
+`GET /events` (`useInsights` hook) — NO backend changes, no `/insights`
+endpoint (T7 stays a future option on a cold DB). New/changed frontend:
+`insights.ts` (all pure math + LA-tz bucketing helpers `laDayKey`/`laHour`/
+`laDayStartMs` — DST-tested, the #1 trap), `GoalRing.tsx` (NEW percent-arc,
+NOT the status `Ring`), extended `Sparkline.tsx` (band/median/markers,
+backward-compatible), `PixelCat.tsx` mood prop, `Den.tsx`, `App.tsx` tab
+wiring, `styles.css` `.den-*` block, `api.ts` gains `since`. Owner answers
+baked in: weight normal band **12.5–14 lb** (`SEED_BAND`); daily recap
+**always live** (for when the recap SHOULD lands); visits ring is
+feeds-only until a 7-day baseline exists (cold DB → one meals ring now).
+Everything cold-start-aware ("still learning") — the DB is only ~1–2 days
+deep. Suites backend 287 / frontend 192 (+58); precache 261 KiB (<300);
+zero new runtime deps; prefers-reduced-motion respected; read-only smoke
+26/26 vs the live container via the vite dev proxy. Real-data screenshot
+posted (honest cold-start night view). Docker rebuild DEFERRED until the
+owner approves on the phone. SHOULD/COULD (heatmap, mealtime timeline,
+Wrapped recap, forecasts, milestones/badges) are the next session.
+Built SOLO under ultracode effort (owner said "work solo" in the prompt —
+honored despite workflow orchestration being enabled).
+
 ## Current state (2026-07-05, late evening — M0–M5.5 ALL ACCEPTED ✅)
 PWA installed on the owner's phone, live on LAN, phone-triggered clean
 verified (M1+M4+M5 accepted; see docs/03 notes). CATHQ_AUTH_TOKEN is a
@@ -70,11 +97,11 @@ DEPLOY GOTCHA (2026-07-05): Docker Hub had a flaky window where
 `docker pull python:3.12-slim` first (warms cache), then rebuild.
 Owner UX taste (memory plain-minimal-ui): one obvious control, plain
 words, hide edge cases in the API.
-NEXT: M6 (Tapo camera — owner enables third-party compat + camera
-account in the Tapo app, fills model into docs/00). The docs/04 test
-session is DONE; from M6 on new code lands with its tests.
-Then M6 (Tapo camera: owner enables third-party compat + camera
-account in the Tapo app, fills model into docs/00).
+NEXT: owner approves the Den look on the phone → docker rebuild → tick
+M5.7 Accept. Then either the M5.7 SHOULD/COULD sections or M6 (Tapo
+camera — owner enables third-party compat + camera account in the Tapo
+app, fills model into docs/00). The docs/04 test session is DONE; new
+code lands with its tests.
 Tooling: Node 26 via brew; go2rtc pinned 1.9.14; playwright OUTSIDE
 frontend/ (postinstall bloat); scripts/verify_m5.sh + smoke.cjs are
 read-only BY DESIGN — never add command-endpoint probes (memory:

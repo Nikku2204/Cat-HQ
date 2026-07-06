@@ -92,12 +92,14 @@ export const api = {
   events: (params: {
     device?: string
     type?: string
+    since?: string
     until?: string
     limit?: number
   }) => {
     const qs = new URLSearchParams()
     if (params.device) qs.set('device', params.device)
     if (params.type) qs.set('type', params.type)
+    if (params.since) qs.set('since', params.since)
     if (params.until) qs.set('until', params.until)
     if (params.limit) qs.set('limit', String(params.limit))
     return request<{ count: number; events: EventOut[] }>(`/events?${qs}`)

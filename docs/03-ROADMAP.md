@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M5.7 — Insights Dashboard** (spec ready in `docs/06`, to be built in a fresh session). Then **M6 — live video**. M0–M5.5 ✅ ACCEPTED (through Govee power control + UX v2 + owner-watched Restart drill + cat-friendly copy). |
+| Current milestone | **M5.7 — Insights Dashboard**: MUST v1 (hero + vitals + weight watch) BUILT 2026-07-06, screenshots posted, awaiting owner phone approval + live rebuild. SHOULD/COULD (heatmap, mealtime, recap, forecasts, milestones) queued next. Then **M6 — live video**. M0–M5.5 ✅ ACCEPTED. |
 | Last updated | 2026-07-06 |
-| Blockers | None for the dashboard (M5.7) — it builds on data we already have. For M6: owner needs to enable Tapo third-party compatibility + create the camera account in the Tapo app and fill the model into docs/00. Home-box purchase pending. |
+| Blockers | None for M5.7 MUST — built on existing data, client-side, tests green (backend 287 / frontend 192), precache 261 KiB. Awaiting owner approval on the phone before the docker rebuild. For M6: owner enables Tapo third-party compat + camera account and fills the model into docs/00. Home-box purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -200,14 +200,22 @@ safety). Recommended shape: a "Pinsu, right now" hero with Apple-Fitness goal
 rings, a 2×2 vitals KPI wall, an un-paywalled weight-watch trend, a litter
 rhythm heatmap, a scheduled-vs-actual mealtime timeline, and a Wrapped-style
 daily recap — MUST sections (hero + vitals + weight) ship a useful v1 alone.
-- [ ] New 🌙 Den tab + route; data hooks over `GET /events` (with any small
-      additive aggregation endpoint the spec flags, e.g. `/insights`)
-- [ ] Hero + insight sections per `docs/06` (must/should/could) — hand-rolled
-      viz (new `GoalRing`, extended `Sparkline`, heatmap, `PixelCat` moods)
-- [ ] Health discipline per spec: LA-timezone bucketing, weight noise
-      smoothing, inverted health color, cold-start honesty; delight rationed
-- [ ] Tests land with the code (docs/04 rule 4); smoke extended read-only;
-      screenshots for owner approval before the live rebuild
+- [x] New 🌙 Den tab + route; data hooks over `GET /events` (`useInsights`,
+      client-side; no `/insights` endpoint needed on a cold DB — T7 stays a
+      documented future option)
+- [~] Hero + insight sections per `docs/06` — **MUST built** ("Pinsu, right
+      now" hero w/ dual `GoalRing`, 2×2 vitals bento, un-paywalled Weight
+      Watch). SHOULD/COULD (heatmap, mealtime, recap, forecasts, milestones)
+      queued for the next session. New viz: `GoalRing`, extended `Sparkline`
+      (band + median + markers), `PixelCat` moods.
+- [x] Health discipline per spec: LA-timezone bucketing (DST-tested), weight
+      noise smoothing (filter >20% off trailing median → 7-visit rolling
+      median), inverted color (band membership, never up=good), cold-start
+      honesty ("still learning") everywhere; delight rationed
+- [x] Tests land with the code (docs/04 rule 4): +58 frontend units
+      (insights math, GoalRing, Sparkline, PixelCat, Den, App tab); smoke
+      extended read-only (Den sections + no h-scroll); screenshots posted for
+      owner approval before the live rebuild
 
 **Accept:** owner opens the Dashboard tab on their phone and it's genuinely
 useful at a glance AND fun — trends and Pinsu's daily story read clearly, it
@@ -216,6 +224,15 @@ stays under the ~300 KB precache budget, and the owner likes it.
 *Independent of M6 (video) — can ship first. Spec authored 2026-07-06 from a
 research + design pass (cat/pet apps, cat-health signals, mobile dashboard
 patterns, delight mechanics, hand-rolled dataviz recipes).*
+
+*MUST v1 built 2026-07-06 (solo, per owner token-frugality). Owner answered
+the two open questions live: weight band **12.5–14 lb**; daily recap **always
+live** (applies when the recap SHOULD lands). Precache 261 KiB (< 300);
+backend 287 / frontend 192 green; read-only smoke 26/26 vs the live container
+via the dev proxy. Real-data screenshot is an honest cold-start night view:
+single meals ring (no 7-day visit baseline yet), "still learning" states, 13.1
+lb in range, care streak Feeder/no-faults 4d. Docker rebuild DEFERRED until
+the owner approves the look on their phone — then tick Accept.*
 
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC

@@ -52,9 +52,12 @@ cd backend && pip install -e '.[test]' && pytest
 cd frontend && npm install && npm test
 ```
 
+Current baseline: backend 287, frontend 192 unit tests green.
+
 E2E stays manual and read-only against the running container:
 `scripts/verify_m5.sh` (17 HTTP/WS checks) and `node scripts/smoke.cjs`
-(Playwright browser smoke; install Playwright OUTSIDE `frontend/`).
+(Playwright browser smoke, 26 read-only checks incl. the 🌙 Den sections;
+install Playwright OUTSIDE `frontend/`).
 
 ## Layout
 

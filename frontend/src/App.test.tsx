@@ -2,7 +2,7 @@
 // avatar connection ring, reconnect toast for blips, full banner only after
 // 60s of continuous offline. useLive is mocked; fetch is disabled (child
 // cards' event-log fetches reject and are swallowed by their .catch()).
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import App from './App'
 import { useLive } from './useLive'
 import type { Devices } from './types'
@@ -129,6 +129,21 @@ describe('App shell', () => {
     rerender(<App />)
     act(() => vi.advanceTimersByTime(2_500))
     expect(screen.queryByText('Reconnected ✓')).not.toBeInTheDocument()
+  })
+
+  it('the 🌙 Den tab renders the insights dashboard', async () => {
+    // reduced-motion → the goal ring mounts filled (no rAF act churn); the
+    // child cards' event fetches reject (fetch is disabled) and Den falls back
+    // to its cold-start states, but the hero always renders.
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((q: string) => ({ matches: q.includes('reduce'), media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn() })),
+    )
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
+    render(<App />)
+    fireEvent.click(screen.getByText('🌙 Den'))
+    expect(await screen.findByText('Pinsu')).toBeInTheDocument()
+    expect(screen.getByText('Weight watch')).toBeInTheDocument()
   })
 
   it('shows the full banner only after 60s of continuous offline', () => {

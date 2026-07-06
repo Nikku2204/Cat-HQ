@@ -301,7 +301,32 @@ wallpaper, plus a small collectible shelf of true mementos.
 - Screenshots (Den idle, cold-start, a populated day) posted for owner
   approval BEFORE the docker rebuild that ships it.
 
-## Open questions for the owner (confirm before/at build)
+## Open questions for the owner — ANSWERED (build session 2026-07-06)
+
+1. **Tab vs landing:** third `🌙 Den` tab, Home stays default. ✅ built.
+2. **Timezone:** America/Los_Angeles is canonical for ALL bucketing. ✅
+   (`insights.ts` laDayKey/laHour/laDayStartMs; DST-tested.)
+3. **Weight baseline seed:** **12.5–14 lb** (owner). ✅ `SEED_BAND` — the shaded
+   normal band + the cold-start reference; never blank.
+4. **Visits goal:** feeds-only ring on a cold DB; the visits ring only appears
+   once a 7-day baseline exists. ✅ hero renders one meals ring until then.
+5. **Milestones:** cycle_count already ~6,544 (the 1,000th landmark is long
+   past) → COULD section will use a forward landmark. (Not built this session.)
+6. **History depth:** effectively cold-start (~1–2 days native). ✅ every
+   section has a real cold-start/empty state, designed first.
+7. **Persistence:** localStorage for dismissed-recap / fired-milestone ids —
+   OK. (Used when the recap/milestones SHOULD/COULD sections land.)
+8. **Recap timing:** **always live/rolling** for the current day (owner,
+   2026-07-06). To apply when the Pinsu's-Day recap (SHOULD) is built.
+
+### Shipped 2026-07-06 (MUST v1)
+Hero + vitals bento + weight watch, the Den tab, and all shared infra
+(`insights.ts` LA-tz + math, `GoalRing`, extended `Sparkline`, `PixelCat`
+moods, `useInsights`). Client-side only — no `/insights` endpoint needed on a
+cold DB (T7 stays a documented future option). SHOULD/COULD (heatmap,
+mealtime, recap, forecasts, milestones) are the next session.
+
+## Original open questions (kept for reference)
 
 1. **Tab vs landing:** ship as a **third `🌙 Den` tab** with Home staying the
    default (recommended), or make it the landing view? Confirm the label/emoji.
