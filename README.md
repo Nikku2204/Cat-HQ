@@ -33,6 +33,24 @@ npm install
 npm run dev        # Vite on :5173, proxies /devices /events /health /ws → :8000
 ```
 
+## Testing
+
+Unit suites live next to the code they test (spec: `docs/04-TESTING.md`).
+Tests never touch vendor clouds and never move hardware — everything runs
+in-process against fakes.
+
+```bash
+# backend (pytest; deps install via the [test] extra, never into the image)
+cd backend && pip install -e '.[test]' && pytest
+
+# frontend (vitest + testing-library)
+cd frontend && npm install && npm test
+```
+
+E2E stays manual and read-only against the running container:
+`scripts/verify_m5.sh` (17 HTTP/WS checks) and `node scripts/smoke.cjs`
+(Playwright browser smoke; install Playwright OUTSIDE `frontend/`).
+
 ## Layout
 
     docker-compose.yml     backend + go2rtc services

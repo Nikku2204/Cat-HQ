@@ -27,19 +27,26 @@ from __future__ import annotations
 
 import os
 
-# ── env hardening — MUST stay above any `app.*` import ──────────────────
+# ── env hardening — MUST stay above any other `app.*` import ────────────
+# Derived from the Settings schema (app.config has no import-time side
+# effects) so a future credential field — e.g. the GOVEE_API_KEY planned for
+# M5.5 — is blanked automatically instead of depending on someone updating a
+# hand-maintained list. Env vars override dotenv values in pydantic-settings,
+# so this also neutralizes a repo-root .env when pytest runs from the root.
+from app.config import Settings  # noqa: E402
+
+_NON_SECRET_FIELDS = {"app_name", "version", "build_sha", "tz", "cat_names"}
+for _field, _info in Settings.model_fields.items():
+    if _field in _NON_SECRET_FIELDS:
+        continue
+    if _info.annotation is str:
+        os.environ[_field.upper()] = ""  # secrets are all strings — blank them
+    else:
+        # bool/float knobs aren't secrets; "" wouldn't parse. Drop any shell
+        # leakage and let the field's default apply.
+        os.environ.pop(_field.upper(), None)
 os.environ["CATHQ_AUTH_TOKEN"] = "test-token"
 os.environ["DATABASE_PATH"] = ":memory:"  # inert; the db fixture patches engines anyway
-for _var in (
-    "WHISKER_EMAIL",
-    "WHISKER_PASSWORD",
-    "PETLIBRO_EMAIL",
-    "PETLIBRO_PASSWORD",
-    "TAPO_CAM_IP",
-    "TAPO_CAM_USER",
-    "TAPO_CAM_PASS",
-):
-    os.environ[_var] = ""
 
 from datetime import datetime, timezone  # noqa: E402
 from typing import Any  # noqa: E402
@@ -151,7 +158,12 @@ class FakeAdapter(DeviceAdapter):
 async def db(monkeypatch):
     """Fresh in-memory DB per test, patched into every module that holds a
     reference. Yields the session factory. Tests that hit /events or use the
-    Recorder MUST request this fixture."""
+    Recorder MUST request this fixture.
+
+    Lifespan shutdown is defanged: dispose_db is patched to a no-op so
+    exiting a TestClient context can't dispose this engine mid-test (the
+    StaticPool would silently recreate an EMPTY :memory: db). The fixture
+    disposes the engine itself at teardown."""
     engine = create_async_engine(
         "sqlite+aiosqlite://",
         poolclass=StaticPool,
@@ -160,10 +172,15 @@ async def db(monkeypatch):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async def _noop_dispose() -> None:
+        pass
+
     monkeypatch.setattr(app_db, "engine", engine)
     monkeypatch.setattr(app_db, "SessionLocal", session_factory)
     monkeypatch.setattr(events_api, "SessionLocal", session_factory)
     monkeypatch.setattr(app_main, "SessionLocal", session_factory)
+    monkeypatch.setattr(app_main, "dispose_db", _noop_dispose)
     yield session_factory
     await engine.dispose()
 
@@ -188,15 +205,16 @@ def app():
     Add fakes via `app.state.adapters["litterrobot"] = FakeAdapter(...)`.
     """
     real_app = app_main.app
-    saved = {
-        "adapters": getattr(real_app.state, "adapters", None),
-        "hub": getattr(real_app.state, "hub", None),
-    }
+    _missing = object()  # restore faithfully: absent-before must be absent-after
+    saved = {name: getattr(real_app.state, name, _missing) for name in ("adapters", "hub")}
     real_app.state.adapters = {}
     real_app.state.hub = Hub()
     yield real_app
-    real_app.state.adapters = saved["adapters"]
-    real_app.state.hub = saved["hub"]
+    for name, value in saved.items():
+        if value is _missing:
+            delattr(real_app.state, name)
+        else:
+            setattr(real_app.state, name, value)
 
 
 @pytest.fixture

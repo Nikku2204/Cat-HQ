@@ -2,8 +2,10 @@
 
 Covers: GET /devices shape + fail-loud null state, GET /devices/litterrobot
 404/disconnected/200, POST clean 502 matrix over CLOUD_ERRORS + accepted=False
-+ pass-through, and the feeder feed matrix (FEEDER_CLOUD_ERRORS → 502,
-PetlibroSessionError → 503, portions bounds via pydantic).
++ pass-through, GET /devices/feeder disconnected/connected, the feeder feed
+matrix (FEEDER_CLOUD_ERRORS → 502, PetlibroSessionError → 503, portions bounds
+via pydantic), and both /history endpoints (404/503/502 ladder, payload shape,
+limit/days query bounds).
 
 All in-process with FakeAdapters — no network, no hardware (docs/04 rules 1-2).
 """
@@ -89,11 +91,11 @@ async def test_litterrobot_get_404_when_adapter_absent(client):
 
 
 async def test_litterrobot_get_disconnected_returns_null_state(app, client):
-    """docs/04 says 503 here, but the endpoint (by its own docstring and the
-    architecture's fail-loud rule) returns 200 with state=null + the health
-    payload so the UI badge can show the detail — same contract as GET
-    /devices and GET /devices/feeder. 503 applies to the command/history
-    endpoints (covered below). Testing actual behavior; mismatch reported."""
+    """docs/04 originally specced 503 here; amended (same commit) to the
+    route's fail-loud contract: 200 with state=null + the full health payload
+    so the UI badge renders — same contract as GET /devices and GET
+    /devices/feeder. 503-with-health-detail applies to the command/history
+    endpoints (covered below)."""
     _lr(
         app,
         connected=False,
@@ -181,6 +183,35 @@ async def test_litterrobot_clean_200_passes_result_through(app, client):
     assert len(fake.executed) == 1
     assert fake.executed[0].name == "start_clean"
     assert fake.executed[0].params == {}
+
+
+# ── GET /devices/feeder ──────────────────────────────────────────────────
+
+
+async def test_feeder_get_disconnected_returns_null_state(app, client):
+    """Same fail-loud contract as GET /devices/litterrobot: 200 with
+    state=null + the full health payload while disconnected, so the UI badge
+    renders — 503-with-health-detail belongs to the command/history paths."""
+    _feeder(
+        app,
+        connected=False,
+        health=AdapterHealth(status=HealthStatus.DEGRADED, detail="cloud poll failing"),
+    )
+    resp = await client.get("/devices/feeder")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["state"] is None
+    assert body["health"]["status"] == "degraded"
+    assert body["health"]["detail"] == "cloud poll failing"
+
+
+async def test_feeder_get_connected_200_with_state(app, client):
+    _feeder(app, attributes={"grain_num": 12, "battery_state": "low"})
+    resp = await client.get("/devices/feeder")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["health"]["status"] == "ok"
+    assert body["state"]["attributes"] == {"grain_num": 12, "battery_state": "low"}
 
 
 # ── POST /devices/feeder/feed ────────────────────────────────────────────
@@ -272,3 +303,112 @@ async def test_feeder_feed_no_body_defaults_to_one_portion(app, client):
     assert resp.status_code == 200
     assert fake.executed[0].name == "manual_feed"
     assert fake.executed[0].params == {"portions": 1}
+
+
+# ── GET /devices/{litterrobot,feeder}/history ────────────────────────────
+
+# Both history endpoints share the 404/503/502 ladder (the amended docs/04
+# contract lives here, on the command/history paths); they differ in the
+# FakeAdapter hook that backs them, the cloud-error prefix, and the items key.
+HISTORY_ENDPOINTS = {
+    "litterrobot": {
+        "install": _lr,
+        "path": "/devices/litterrobot/history",
+        "env_hint": "WHISKER_EMAIL",
+        "data_attr": "activity",
+        "exc_attr": "activity_exc",
+        "cloud_exc": LitterRobotException("boom"),
+        "cloud_prefix": "whisker cloud error:",
+        "items_key": "activities",
+    },
+    "feeder": {
+        "install": _feeder,
+        "path": "/devices/feeder/history",
+        "env_hint": "PETLIBRO_EMAIL",
+        "data_attr": "feed_log",
+        "exc_attr": "feed_log_exc",
+        "cloud_exc": PetlibroError("boom"),
+        "cloud_prefix": "petlibro cloud error:",
+        "items_key": "events",
+    },
+}
+
+history_matrix = pytest.mark.parametrize(
+    "ep", HISTORY_ENDPOINTS.values(), ids=list(HISTORY_ENDPOINTS)
+)
+
+
+@history_matrix
+async def test_history_404_when_adapter_absent(client, ep):
+    resp = await client.get(ep["path"])
+    assert resp.status_code == 404
+    assert ep["env_hint"] in resp.json()["detail"]
+
+
+@history_matrix
+async def test_history_503_when_disconnected(app, client, ep):
+    """Health detail must surface in the 503 body — the spec's disconnected
+    contract on the history path."""
+    ep["install"](
+        app,
+        connected=False,
+        health=AdapterHealth(status=HealthStatus.ERROR, detail="cloud auth failed"),
+    )
+    resp = await client.get(ep["path"])
+    assert resp.status_code == 503
+    assert "cloud auth failed" in resp.json()["detail"]
+
+
+@history_matrix
+async def test_history_502_on_cloud_error(app, client, ep):
+    """A representative cloud error from the history fetch maps to 502."""
+    fake = ep["install"](app)
+    setattr(fake, ep["exc_attr"], ep["cloud_exc"])
+    resp = await client.get(ep["path"])
+    assert resp.status_code == 502
+    assert resp.json()["detail"].startswith(ep["cloud_prefix"])
+
+
+async def test_feeder_history_session_error_maps_to_503(app, client):
+    """PetlibroSessionError is a PetlibroError subclass but must hit the more
+    specific 503 branch, not the 502 catch-all — same branch-order pin as the
+    feed test above."""
+    fake = _feeder(app)
+    fake.feed_log_exc = PetlibroSessionError("contested")
+    resp = await client.get("/devices/feeder/history")
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail.startswith("petlibro session lost:")
+    assert "contested" in detail
+
+
+@history_matrix
+async def test_history_200_shape_and_limit_forwarding(app, client, ep):
+    """{count, activities} vs {count, events}; limit reaches the adapter (the
+    fake slices its scripted rows by it)."""
+    fake = ep["install"](app)
+    rows = [{"n": i} for i in range(5)]
+    setattr(fake, ep["data_attr"], rows)
+    resp = await client.get(ep["path"], params={"limit": 3})
+    assert resp.status_code == 200
+    assert resp.json() == {"count": 3, ep["items_key"]: rows[:3]}
+
+
+@history_matrix
+@pytest.mark.parametrize("limit", [0, 501])
+async def test_history_limit_out_of_bounds_422(app, client, ep, limit):
+    """Query bounds (1..500) reject before the handler runs — the scripted
+    cloud error would turn this into a 502 if the adapter were reached."""
+    fake = ep["install"](app)
+    setattr(fake, ep["exc_attr"], ep["cloud_exc"])
+    resp = await client.get(ep["path"], params={"limit": limit})
+    assert resp.status_code == 422
+
+
+@pytest.mark.parametrize("days", [0, 91])
+async def test_feeder_history_days_out_of_bounds_422(app, client, days):
+    """days bounds (1..90) are feeder-only; same reject-before-handler pin."""
+    fake = _feeder(app)
+    fake.feed_log_exc = PetlibroError("must not fire")
+    resp = await client.get("/devices/feeder/history", params={"days": days})
+    assert resp.status_code == 422

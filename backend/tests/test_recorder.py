@@ -309,11 +309,12 @@ async def test_feeder_rows_without_timestamp_skipped_row_by_row(
 async def test_malformed_lr_timestamp_aborts_lr_batch_feeder_still_lands(
     recorder, fake_lr, fake_feeder, db
 ):
-    """ACTUAL behavior (docs/04 wording is looser — see session report):
+    """Per the amended docs/04 bullet (which also records the known gap):
     normalize_iso raising on a malformed litterrobot timestamp aborts the
     REST of litterrobot's batch that cycle (rows appended before the bad
     one still insert; rows after it are lost while the bad row stays in
-    the fetch window). The per-adapter try means feeder rows still land.
+    the fetch window — per-row try/except fix queued for a feature
+    session). The per-adapter try means feeder rows still land.
     """
     fake_lr.activity = [
         {"timestamp_utc": "2026-07-05T08:00:00+00:00", "action": "Clean Cycle In Progress"},

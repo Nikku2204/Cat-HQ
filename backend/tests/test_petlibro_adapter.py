@@ -11,13 +11,12 @@ never raise), `get_feed_log` day-bucket flattening + the flattened-limit
 regression guard, and the health state machine (OK → DEGRADED → ERROR
 promotion, device-offline override, `_note_cloud_success` freshness rules).
 
-Documented spec deviations (suite stays green against ACTUAL behavior — see
-the matching tests):
-- docs/04 says a missing `recordTime` is "skipped": the adapter actually
-  emits the entry with `timestamp_utc=None`; the RECORDER is what drops it.
+Contract notes (docs/04 was amended to say exactly this — the tests pin it):
+- a missing `recordTime` is emitted with `timestamp_utc=None` (the adapter
+  stays a dumb flattener); the RECORDER is the layer that drops it.
 - a colon-less malformed `executionTime` is filtered by the enable/":"
   pre-check and skipped SILENTLY; only colon-containing garbage reaches the
-  logged-warning path docs/04 describes.
+  logged-warning path.
 """
 from __future__ import annotations
 
@@ -189,10 +188,10 @@ def test_next_feed_malformed_plan_logged_and_skipped(
     ],
 )
 def test_next_feed_colonless_time_skipped_silently(adapter, monkeypatch, caplog, mutate):
-    """SPEC MISMATCH (documented): docs/04 says malformed executionTime is
-    "logged-and-skipped", but a value with no ":" is filtered by the same
-    pre-check as `enable` — skipped with NO warning. Only colon-containing
-    garbage reaches the logged path (test above)."""
+    """Per the amended docs/04 bullet: a value with no ":" is filtered by the
+    same pre-check as `enable` — skipped with NO warning (indistinguishable
+    from "no schedule set"). Only colon-containing garbage reaches the
+    logged path (test above)."""
     freeze_now(monkeypatch, NOW_MON)
     p = plan()
     if mutate == "drop-key":
@@ -338,10 +337,10 @@ async def test_feed_log_flattens_filters_and_recaps_limit(adapter):
 
 
 async def test_feed_log_missing_record_time_emits_none_timestamp(adapter):
-    """SPEC MISMATCH (documented): docs/04 says "missing recordTime skipped"
-    but the adapter emits the row with timestamp_utc=None (`if ts else None`
-    — a 0/epoch recordTime is falsy and also maps to None); the recorder is
-    the layer that actually drops timestamp-less rows."""
+    """Per the amended docs/04 bullet: a missing recordTime is emitted with
+    timestamp_utc=None (`if ts else None` — a 0/epoch recordTime is falsy and
+    also maps to None); the recorder is the layer that drops timestamp-less
+    rows."""
     adapter._serial = "SN1"
     stub_work_records(adapter, [
         {"workRecords": [rec(None), rec(0), rec(FEED_T0)]},

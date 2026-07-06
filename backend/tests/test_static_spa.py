@@ -2,7 +2,9 @@
 
 Covers: / serving index.html vs the JSON hint, cache headers (immutable for
 hashed /assets, no-cache for the shell files), deep SPA-route fallback, API
-routes winning over the catch-all, and path-traversal containment.
+routes winning over the catch-all, and path-traversal containment (dotted
+targets → 404; extensionless targets → contained, then served the SPA shell
+by design — the docs/04 "fall through to the SPA shell" clause).
 
 STATIC_DIR is a module global in app.main read at call time, so each test
 points it at a tmp_path tree via monkeypatch. Static/SPA routes are
@@ -39,8 +41,10 @@ _IMMUTABLE = "public, max-age=31536000, immutable"
 def static_tree(tmp_path, monkeypatch):
     """Frontend-build-shaped tree at tmp_path/static, patched into
     app.main.STATIC_DIR (resolved — the containment check compares resolved
-    paths). A canary secret sits OUTSIDE the tree, at tmp_path/secret.txt,
-    as the target for traversal attempts."""
+    paths). Canary secrets sit OUTSIDE the tree as traversal targets: dotted
+    tmp_path/secret.txt (hits spa()'s file-looking 404 branch) plus
+    extensionless tmp_path/flatsecret and tmp_path/secretdir/creds (hit the
+    SPA-navigation fallthrough branch)."""
     static = tmp_path / "static"
     (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text(INDEX_HTML)
@@ -48,6 +52,9 @@ def static_tree(tmp_path, monkeypatch):
     (static / "manifest.webmanifest").write_text(MANIFEST)
     (static / "assets" / "app-abc123.js").write_text(ASSET_JS)
     (tmp_path / "secret.txt").write_text(CANARY)
+    (tmp_path / "flatsecret").write_text(CANARY)
+    (tmp_path / "secretdir").mkdir()
+    (tmp_path / "secretdir" / "creds").write_text(CANARY)
     static = static.resolve()
     monkeypatch.setattr(app_main, "STATIC_DIR", static)
     return static
@@ -207,6 +214,58 @@ async def test_absolute_path_traversal_404s(anon_client, static_calls, static_tr
     assert resp.status_code == 404
     assert CANARY not in resp.text
     assert static_calls[0] == str(canary)
+
+
+@pytest.mark.parametrize(
+    "url,expect_received",
+    [
+        ("/%2e%2e/flatsecret", "../flatsecret"),
+        ("/%2e%2e/%2e%2e/secretdir/creds", "../../secretdir/creds"),
+    ],
+)
+async def test_extensionless_traversal_serves_spa_shell(
+    anon_client, static_tree, static_calls, url, expect_received
+):
+    """Extensionless traversals are contained but NOT 404: _static_response
+    rejects the out-of-tree resolve, then spa() classifies the dot-less last
+    segment as an SPA navigation and serves index.html (docs/04: "contained
+    and fall through to the SPA shell by design"). The canary must never
+    leak; the 200 body must be the shell, no-cache."""
+    resp = await anon_client.get(url)
+    assert resp.status_code == 200
+    assert resp.text == INDEX_HTML
+    assert resp.headers["cache-control"] == _NO_CACHE
+    assert CANARY not in resp.text
+    # The decoded ".." really reached the route, was contained, and the
+    # shell came from the fallthrough — not from serving the hostile path.
+    assert static_calls == [expect_received, "index.html"]
+
+
+async def test_absolute_extensionless_traversal_serves_spa_shell(
+    anon_client, static_calls, static_tree, tmp_path
+):
+    """Absolute extensionless target (Path.__truediv__ discards STATIC_DIR):
+    contained by is_relative_to, then falls through to the shell because the
+    last segment has no dot."""
+    canary = tmp_path / "flatsecret"
+    # Double leading slash keeps the captured {path} absolute (see
+    # test_absolute_path_traversal_404s).
+    resp = await anon_client.get(f"http://test/{canary}")
+    assert resp.status_code == 200
+    assert resp.text == INDEX_HTML
+    assert resp.headers["cache-control"] == _NO_CACHE
+    assert CANARY not in resp.text
+    assert static_calls == [str(canary), "index.html"]
+
+
+async def test_extensionless_traversal_404_without_build(anon_client, tmp_path, monkeypatch):
+    """No frontend build: the contained extensionless traversal has no shell
+    to fall through to — 404, never 500, and never the canary."""
+    (tmp_path / "flatsecret").write_text(CANARY)
+    monkeypatch.setattr(app_main, "STATIC_DIR", tmp_path / "static")
+    resp = await anon_client.get("/%2e%2e/flatsecret")
+    assert resp.status_code == 404
+    assert CANARY not in resp.text
 
 
 def test_static_response_rejects_out_of_tree_paths(static_tree, tmp_path):

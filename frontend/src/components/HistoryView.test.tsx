@@ -131,12 +131,57 @@ describe('HistoryView', () => {
     await user.click(screen.getByRole('button', { name: 'Litter' }))
     await screen.findByText('litter-row')
 
-    // the stale All response arrives late — the generation/stale guard must drop it
+    // the stale All response arrives late — the mount effect's `stale` closure
+    // flag must drop it (load()'s generation guard is covered separately below)
     await act(async () => {
       resolveStale(page([ev({ data: { portions: 9 }, ts_utc: ts(1) })]))
     })
     expect(screen.queryByText('Fed 9 portions')).not.toBeInTheDocument()
     expect(screen.getByText('litter-row')).toBeInTheDocument()
+  })
+
+  it('drops a stale Load-older response that resolves after a filter switch', async () => {
+    const first = fullPage() // exactly PAGE=50 → button shows
+    let resolveAppend!: (p: Page) => void
+    eventsMock
+      .mockResolvedValueOnce(page(first))
+      // the append call hangs until we resolve it below
+      .mockImplementationOnce(
+        () =>
+          new Promise<Page>((res) => {
+            resolveAppend = res
+          }),
+      )
+      .mockResolvedValueOnce(
+        page([
+          ev({
+            device_id: 'litterrobot',
+            event_type: 'activity',
+            data: { action: 'litter-row' },
+            ts_utc: ts(0),
+          }),
+        ]),
+      )
+    const user = userEvent.setup()
+    render(<HistoryView />)
+    await screen.findByText('row-1')
+
+    // start the append, then switch filters while it is still in flight
+    await user.click(screen.getByRole('button', { name: 'Load older' }))
+    await user.click(screen.getByRole('button', { name: 'Litter' }))
+    await screen.findByText('litter-row')
+
+    // the stale append arrives late — load()'s generation ref guard must drop
+    // both the appended rows and the pre-switch base rows it would re-apply
+    await act(async () => {
+      resolveAppend(
+        page([ev({ event_type: 'activity', data: { action: 'older-1' }, ts_utc: ts(50) })]),
+      )
+    })
+    expect(screen.queryByText('older-1')).not.toBeInTheDocument()
+    expect(screen.queryByText('row-1')).not.toBeInTheDocument()
+    expect(screen.getByText('litter-row')).toBeInTheDocument()
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
   })
 
   it('Load older requests until=oldest ts and dedupes the inclusive boundary row', async () => {

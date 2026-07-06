@@ -8,11 +8,10 @@ and `get_state` attribute mapping off a stub Robot.
 Pure-logic tests — the constructor does no I/O and every case drives adapter
 internals directly; no network, no vendor cloud, no hardware (docs/04 rules).
 
-SPEC WORDING MISMATCH (recorded for the orchestrator): docs/04 says login
-failures "escalate 60s→30min cap", but the code's backoff base is
-POLL_INTERVAL_S = 300 (the M4 5-min reconcile — 60s was the M1 poll rate),
-so the real sequence is min(300 * 2**strikes, 1800) = 600 → 1200 → 1800 (cap).
-These tests assert the real arithmetic.
+Login-failure backoff contract (docs/04 was amended to match the code): the
+base is POLL_INTERVAL_S = 300 (the M4 5-min reconcile — 60s was only the M1
+poll rate), so the sequence is min(300 * 2**strikes, 1800) = 600 → 1200 →
+1800 (cap). These tests pin that arithmetic.
 """
 from __future__ import annotations
 
@@ -225,9 +224,9 @@ async def test_transient_failures_reach_error_badge_only_at_threshold() -> None:
 
 
 async def test_login_failure_escalation_badges_backoff_and_teardown() -> None:
-    """Real arithmetic is min(POLL_INTERVAL_S * 2**strikes, LOGIN_BACKOFF_CAP_S)
-    = 600 → 1200 → 1800 → 1800 (docs/04 says "60s→30min" — stale wording,
-    see module docstring). ERROR badge only from the 2nd strike."""
+    """min(POLL_INTERVAL_S * 2**strikes, LOGIN_BACKOFF_CAP_S) = 600 → 1200 →
+    1800 → 1800, per the amended docs/04 bullet (see module docstring).
+    ERROR badge only from the 2nd strike."""
     adapter = _adapter()
     account = StubAccount()
     adapter._account, adapter._robot = account, _stub_robot()
