@@ -9,11 +9,13 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from .adapters.base import DeviceAdapter
+from .adapters.govee import GoveePlugAdapter
 from .adapters.litterrobot import LitterRobotAdapter
 from .adapters.petlibro import PetlibroAdapter
 from .api import devices, events, ws
@@ -21,6 +23,7 @@ from .auth import require_auth
 from .broadcast import Hub
 from .config import get_settings
 from .db import SessionLocal, dispose_db, init_db
+from .models import Event, iso_utc_now
 from .pollers import Recorder
 
 logger = logging.getLogger(__name__)
@@ -48,6 +51,25 @@ def _hub_notifier(device_id: str, adapter: DeviceAdapter, hub: Hub):
         asyncio.get_running_loop().create_task(_send())
 
     return notify
+
+
+def _power_event_writer(device_id: str):
+    """on_event hook for plug adapters: persist every power step to the
+    event log (docs/05 — each mains switch must be auditable)."""
+
+    async def write(data: dict[str, Any]) -> None:
+        async with SessionLocal() as session:
+            session.add(Event(
+                device_id=device_id,
+                event_type="power",
+                ts_utc=iso_utc_now(),
+                source="command",
+                data=data,
+                dedupe_key=None,
+            ))
+            await session.commit()
+
+    return write
 
 
 @asynccontextmanager
@@ -80,6 +102,28 @@ async def lifespan(app: FastAPI):
         )
     else:
         logger.info("feeder adapter not configured (no PETLIBRO_* in .env)")
+    if settings.govee_api_key:
+        # One adapter per EXPLICITLY bound plug (docs/05 mains-safety rule:
+        # commands are refused for anything not named in GOVEE_PLUG_*).
+        plug_bindings = {
+            "plug_litterrobot": settings.govee_plug_litterrobot,
+            "plug_feeder": settings.govee_plug_feeder,
+        }
+        for plug_id, plug_name in plug_bindings.items():
+            if not plug_name:
+                continue
+            plug = GoveePlugAdapter(
+                device_id=plug_id,
+                plug_name=plug_name,
+                api_key=settings.govee_api_key,
+                cycle_delay_s=settings.power_cycle_delay_s,
+            )
+            plug.on_event = _power_event_writer(plug_id)
+            adapters[plug_id] = plug
+        if not any(plug_bindings.values()):
+            logger.info("GOVEE_API_KEY set but no plugs bound (GOVEE_PLUG_* empty)")
+    else:
+        logger.info("govee plug adapters not configured (no GOVEE_API_KEY in .env)")
     for device_id, adapter in adapters.items():
         adapter.on_refresh = _hub_notifier(device_id, adapter, hub)
         # start() never raises — connect failures land in the health badge.
@@ -164,6 +208,7 @@ async def health(request: Request):
         "configured": {
             "whisker": bool(settings.whisker_email),
             "petlibro": bool(settings.petlibro_email),
+            "govee": bool(settings.govee_api_key),
             "tapo": bool(settings.tapo_cam_ip),
         },
         "adapters": {

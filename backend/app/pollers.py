@@ -52,6 +52,17 @@ TRACKED_FIELDS: dict[str, dict[str, str]] = {
         "running_state": "running_state",
         "today_feed_count": "feed_count_change",
     },
+    # Plugs (M5.5): poll-observed switches (e.g. toggled from the Govee app).
+    # Command-issued switches are ALSO logged, by the adapter's on_event hook
+    # (source "command") — two honest views of the same mains socket.
+    "plug_litterrobot": {
+        "power_on": "power",
+        "online": "connectivity",
+    },
+    "plug_feeder": {
+        "power_on": "power",
+        "online": "connectivity",
+    },
 }
 
 

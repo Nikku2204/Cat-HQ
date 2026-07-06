@@ -1,10 +1,13 @@
-"""Device endpoints (M1: Litter-Robot, M2: Petlibro feeder). Camera at M6.
+"""Device endpoints (M1: Litter-Robot, M2: Petlibro feeder, M5.5: Govee
+plugs). Camera at M6.
 
 Error mapping:
 - adapter missing (no creds in .env)      → 404
 - adapter present but not connected       → 503 with health detail
 - cloud/transient failure during the call → 502
 - vendor cloud rejected a command         → 502
+- power command already running (plug)    → 409
+- Govee rate limit hit (plug)             → 429
 """
 from __future__ import annotations
 
@@ -16,6 +19,12 @@ from pydantic import BaseModel, Field
 from pylitterbot.exceptions import LitterRobotException
 
 from ..adapters.base import Command
+from ..adapters.govee import (
+    GoveeError,
+    GoveePlugAdapter,
+    GoveeRateLimitError,
+    PowerBusyError,
+)
 from ..adapters.litterrobot import LitterRobotAdapter
 from ..adapters.petlibro import PetlibroAdapter
 from ..adapters.petlibro.client import (
@@ -191,3 +200,64 @@ async def feeder_history(
     except FEEDER_CLOUD_ERRORS as err:
         raise HTTPException(status_code=502, detail=f"petlibro cloud error: {err}")
     return {"count": len(events), "events": events}
+
+
+# ── Govee smart plugs (M5.5) ─────────────────────────────────────────────
+# SAFETY: these switch MAINS power. Commands exist only for plugs explicitly
+# bound via GOVEE_PLUG_* (the adapter refuses everything else), and nothing
+# in the backend calls them automatically — the trigger is always a human
+# (docs/05). Plugs appear in GET /devices like every other adapter.
+
+PLUG_CLOUD_ERRORS = (GoveeError, aiohttp.ClientError, TimeoutError)
+
+
+def _plug(request: Request, plug_id: str) -> GoveePlugAdapter:
+    adapter = request.app.state.adapters.get(plug_id)
+    if (
+        not plug_id.startswith("plug_")
+        or adapter is None
+        or getattr(adapter, "device_type", None) != "plug"
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail=f"plug {plug_id!r} not configured — "
+            "set GOVEE_API_KEY and GOVEE_PLUG_* in .env",
+        )
+    return adapter
+
+
+async def _plug_command(request: Request, plug_id: str, name: str):
+    adapter = _plug(request, plug_id)
+    if not adapter.connected:
+        health = await adapter.health()
+        raise HTTPException(
+            status_code=503,
+            detail=f"plug adapter not connected: {health.detail}",
+        )
+    try:
+        return await adapter.execute(Command(name=name))
+    except PowerBusyError as err:
+        raise HTTPException(status_code=409, detail=str(err))
+    except GoveeRateLimitError as err:
+        raise HTTPException(status_code=429, detail=f"govee rate limited: {err}")
+    except PLUG_CLOUD_ERRORS as err:
+        raise HTTPException(status_code=502, detail=f"govee cloud error: {err}")
+
+
+@router.post("/{plug_id}/on")
+async def plug_on(request: Request, plug_id: str):
+    """Switch the bound plug's mains ON."""
+    return await _plug_command(request, plug_id, "power_on")
+
+
+@router.post("/{plug_id}/off")
+async def plug_off(request: Request, plug_id: str):
+    """Switch the bound plug's mains OFF."""
+    return await _plug_command(request, plug_id, "power_off")
+
+
+@router.post("/{plug_id}/cycle")
+async def plug_cycle(request: Request, plug_id: str):
+    """Power-cycle the bound plug: OFF → POWER_CYCLE_DELAY_S → ON.
+    Single-flight per plug; a concurrent request gets 409."""
+    return await _plug_command(request, plug_id, "power_cycle")

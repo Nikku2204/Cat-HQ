@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     petlibro_email: str = ""
     petlibro_password: str = ""
 
+    # Govee smart plugs — mains power control (M5.5, docs/05)
+    govee_api_key: str = ""
+    # Explicit plug bindings: the EXACT deviceName from the Govee app.
+    # Commands are refused for any plug not bound here (mains safety).
+    govee_plug_litterrobot: str = ""
+    govee_plug_feeder: str = ""
+    power_cycle_delay_s: float = 8.0  # POWER_CYCLE_DELAY_S — off→on gap
+
     # Tapo camera — local Camera Account credentials (M6)
     tapo_cam_ip: str = ""
     tapo_cam_user: str = ""

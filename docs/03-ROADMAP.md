@@ -117,10 +117,23 @@ worker needs HTTPS → verified at M7.*
 on LAN, clean triggered from the installed app. ✅*
 
 ### M5.5 — Power control (Govee plugs) + UX v2 (est. 8–14h) — spec: `docs/05-PLUG-AND-UX-SPEC.md`
-- [ ] Govee adapter: client + discovery, explicit plug→appliance binding, state polling, `power_cycle` command (developed fully against mocks)
+- [x] Govee adapter: client + discovery, explicit plug→appliance binding, state polling, `power_cycle` command (developed fully against mocks)
 - [ ] Live verification WITH OWNER WATCHING: plug toggle, then a deliberate LR4 power-cycle recovery drill (plugs switch mains — physical-action rules apply)
 - [ ] Dashboard UX v2 per spec (status ring, gauges, Pinsu presence line, weight sparkline, feed timeline, motion) — owner approves look via screenshots, then on the phone
 - [ ] Tests land with the code (docs/04 rule 4); smoke script extended read-only
+
+*Progress 2026-07-05 (late session): Part A landed fully against mocks —
+`adapters/govee/` (v1 client + plug adapter), routes
+`POST /devices/plug_{litterrobot,feeder}/{on,off,cycle}` (409 single-flight,
+429 rate-limit mapping), `power` events from both the command hook and the
+recorder poll diff, config/env (`POWER_CYCLE_DELAY_S=8`), 54 new tests
+(client/adapter/routes), suite green. Safety per spec: exact-name binding
+only (ERROR + account device list on no match), commands refused unbound,
+power sequences shielded from request cancellation, ON-step retries then
+goes loudly ERROR ("plug may still be OFF"). NO live Govee call has been
+made yet — first boot with a real GOVEE_API_KEY is read-only discovery, and
+the toggle/power-cycle drill waits for the owner (mains rule). LR4
+power-restore behavior: still UNKNOWN, document here after the drill.*
 
 **Accept:** a stuck LR4 can be power-cycled from the phone with recovery visible in the app; owner likes the new look on their phone.
 
