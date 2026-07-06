@@ -52,13 +52,17 @@ via `grep CATHQ_AUTH_TOKEN .env`). Secret safety is mechanized: pre-
 commit hook at scripts/githooks (core.hooksPath is set locally; covers
 *_TOKEN/_PASSWORD/_PASS/_EMAIL/_KEY/_SECRET), hardened .gitignore,
 README "Secrets & publishing safety". No git remote exists.
-NEXT UP — M5.5 (docs/05-PLUG-AND-UX-SPEC.md, fresh session): Govee
-plug adapter for LR4 power-cycling (owner must first get GOVEE_API_KEY
-via Govee Home app; plugs switch MAINS — physical-action rules apply,
-explicit plug binding required, no automation) + dashboard UX v2
-("midnight den", zero new runtime deps). A PARALLEL test session is
-executing docs/04-TESTING.md — coordinate via small commits; don't
-touch backend/tests/ files it owns.
+M5.5 IN PROGRESS (docs/05-PLUG-AND-UX-SPEC.md): Part A (Govee plug
+adapter) LANDED — commit d2fc17e — and live-verified READ-ONLY on
+2026-07-05: GOVEE_API_KEY + both plug bindings are in .env and resolve
+uniquely to H5083 plugs ("chutku potty" = LR4, "chutku food" = feeder),
+both online, v1 API confirmed (no Platform API needed). NOT done yet:
+the owner-watched plug toggle + LR4 power-cycle drill (plugs switch
+MAINS — physical-action rules apply, no automation, LR4 power-restore
+behavior still unknown) and Part B dashboard UX v2 ("midnight den",
+zero new runtime deps, screenshots before the live rebuild). A PARALLEL
+test session is executing docs/04-TESTING.md — coordinate via small
+commits; don't touch backend/tests/ files it owns.
 Then M6 (Tapo camera: owner enables third-party compat + camera
 account in the Tapo app, fills model into docs/00).
 Tooling: Node 26 via brew; go2rtc pinned 1.9.14; playwright OUTSIDE

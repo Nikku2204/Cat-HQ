@@ -26,6 +26,31 @@ Research snapshot as of 2026-07-05. All three integrations are unofficial except
 - **Gotcha:** using an SD card and Tapo Care cloud recording at the same time disables RTSP/ONVIF output on the camera. Pick one.
 - **Motion events (post-v1):** subscribe via ONVIF pullpoint or webhook; battery/solar Tapo models often don't expose ONVIF.
 
+## 4. Govee smart plugs — the official-ish one (M5.5)
+
+- **API:** official Govee developer API, v1 REST (`developer-api.govee.com/v1`),
+  key auth via `Govee-API-Key` header. Client isolated in
+  `backend/app/adapters/govee/client.py` so a swap to the newer Platform API
+  (`openapi.api.govee.com`) stays cheap — do NOT chase that unless v1 breaks.
+- **Verified live 2026-07-05 (read-only):** the owner's two plugs are model
+  **H5083**, listed by v1 with `controllable: true`, `supportCmds: ["turn"]`,
+  `retrievable: true`; state returns `online` + `powerState`. Bindings:
+  "chutku potty" → `plug_litterrobot`, "chutku food" → `plug_feeder`. The
+  account also has two Govee LIGHTS (H6110, H6056) — binding is exact
+  deviceName match, so they can never be switched by accident.
+- **Rate limits are TIGHT:** ~10 req/min/device plus daily caps. Poll at 60s
+  with jitter/backoff like every adapter; a power_cycle costs ≤4 calls.
+- **No LAN API for plugs** (that's lights-only) — this is cloud, treat as
+  breakable like Whisker/Petlibro.
+- **Quirk:** the v1 state endpoint can lag a control call by seconds and is
+  known to return `online` as the STRING "false"/"true" — the adapter
+  normalizes, and power commands update state optimistically until the next
+  poll reconciles.
+- **Safety (docs/05, non-negotiable):** plugs switch MAINS. Explicit binding
+  only (`GOVEE_PLUG_*` env, exact name, health-ERROR on no match), commands
+  refused unbound, single-flight per plug, no automation ever calls a power
+  command — the trigger is always a human.
+
 ## Cross-cutting adapter rules
 
 - Common interface: `get_state() -> DeviceState`, `execute(Command)`, `health() -> AdapterHealth`. Fail loudly: surfaced in the UI as a per-device health badge, never silent staleness.

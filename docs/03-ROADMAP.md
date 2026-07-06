@@ -6,7 +6,7 @@
 |---|---|
 | Current milestone | **M5.5 — power control + UX v2** (spec ready in docs/05, planned for a fresh session; a parallel test session is executing docs/04). M1 ✅ M4 ✅ M5 ✅ all accepted 2026-07-05. Then M6 (video). |
 | Last updated | 2026-07-05 (late evening) |
-| Blockers | Govee API key needed (owner: Govee Home app → profile → Settings → Apply for API Key). Remaining fill-in: Tapo model. Hardware purchase pending. |
+| Blockers | Owner-watched plug drill pending (Govee key + both plug bindings are in `.env`, live-verified read-only 2026-07-05). Remaining fill-in: Tapo model. Hardware purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -130,9 +130,14 @@ recorder poll diff, config/env (`POWER_CYCLE_DELAY_S=8`), 54 new tests
 (client/adapter/routes), suite green. Safety per spec: exact-name binding
 only (ERROR + account device list on no match), commands refused unbound,
 power sequences shielded from request cancellation, ON-step retries then
-goes loudly ERROR ("plug may still be OFF"). NO live Govee call has been
-made yet — first boot with a real GOVEE_API_KEY is read-only discovery, and
-the toggle/power-cycle drill waits for the owner (mains rule). LR4
+goes loudly ERROR ("plug may still be OFF").*
+
+*Live READ-ONLY verification 2026-07-05 (device list + one state call per
+plug — zero control calls, per docs/05 safety rule 2): the key works on
+the v1 API; both bindings resolve uniquely to H5083 plugs ("chutku potty"
+→ plug_litterrobot, "chutku food" → plug_feeder), both online and ON,
+`supportCmds: ["turn"]` — v1 supports these plugs, no Platform API needed.
+The toggle/power-cycle drill still waits for the owner (mains rule). LR4
 power-restore behavior: still UNKNOWN, document here after the drill.*
 
 **Accept:** a stuck LR4 can be power-cycled from the phone with recovery visible in the app; owner likes the new look on their phone.
