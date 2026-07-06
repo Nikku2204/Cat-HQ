@@ -52,19 +52,27 @@ via `grep CATHQ_AUTH_TOKEN .env`). Secret safety is mechanized: pre-
 commit hook at scripts/githooks (core.hooksPath is set locally; covers
 *_TOKEN/_PASSWORD/_PASS/_EMAIL/_KEY/_SECRET), hardened .gitignore,
 README "Secrets & publishing safety". No git remote exists.
-M5.5 CODE-COMPLETE (docs/05-PLUG-AND-UX-SPEC.md): Part A (Govee plug
-adapter) landed at d2fc17e and live-verified READ-ONLY 2026-07-05:
-GOVEE_API_KEY + both plug bindings in .env resolve uniquely to H5083
-plugs ("chutku potty" = LR4, "chutku food" = feeder), v1 API confirmed.
-Part B (dashboard UX v2 "midnight den") landed at 82e57aa — zero new
-runtime deps, precache 236 KiB, suites green (backend 282 / frontend
-125), smoke.cjs extended read-only 19/19 vs the live backend through
-the vite dev proxy. AWAITING (in order): (1) owner approves the posted
-screenshots → docker rebuild replaces the live UI; (2) owner-watched
-plug toggle + LR4 power-cycle drill (plugs switch MAINS — physical-
-action rules, no automation; document LR4 power-restore behavior in
-docs/03); then tick the M5.5 boxes. The docs/04 test session is DONE
-(281→ suites merged); from here new code lands with its tests.
+M5.5 DEPLOYED (docs/05-PLUG-AND-UX-SPEC.md) 2026-07-05, owner approved
+the look. `docker compose up -d --build` replaced the live LAN container
+with Part A (Govee plug adapter, d2fc17e) + Part B (dashboard UX v2
+"midnight den", 82e57aa) + adversarial-review fixes (3931cfb). Post-
+deploy /health: all four adapters OK — litterrobot, feeder, and BOTH
+plugs bound+connected (plug_litterrobot→"chutku potty", plug_feeder→
+"chutku food"; read-only discovery only, NO power command ever issued).
+verify_m5.sh 17/17 + extended smoke 19/19 green vs the live container;
+suites backend 287 / frontend 131; precache 236 KiB; zero new runtime
+deps. Pre-deploy review (4 lenses / 34 agents) found + fixed confirmed
+mains-safety bugs — CRITICAL: a non-transient error (bad key / closed
+client) on the power_cycle ON step escaped the loud-failure path and
+could strand the LR4 OFF silently (now catch-all + latched ERROR +
+compose stop_grace_period 210s + HoldButton touch/keyboard cancel).
+ONLY REMAINING for M5.5 acceptance: the OWNER-WATCHED plug drill —
+toggle a plug off→on from the red power zone + a deliberate LR4
+power-cycle, watching the hardware (mains rule, no automation), then
+document the LR4's observed power-restore behavior in docs/03 and tick
+the drill box. The docs/04 test session is DONE. Next milestone after
+the drill: M6 (Tapo camera — owner enables third-party compat + camera
+account, fills model into docs/00).
 Then M6 (Tapo camera: owner enables third-party compat + camera
 account in the Tapo app, fills model into docs/00).
 Tooling: Node 26 via brew; go2rtc pinned 1.9.14; playwright OUTSIDE
