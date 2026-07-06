@@ -60,11 +60,15 @@ describe('App shell', () => {
     ).toBeInTheDocument()
   })
 
-  it('brief offline blip: no banner; reconnect shows a toast instead', async () => {
+  it('brief blip after being live: no banner; reconnect shows a toast', async () => {
     vi.useFakeTimers()
-    mockUseLive.mockReturnValue({ devices: litter, conn: 'offline' })
+    // must have been live first — a reconnect toast only makes sense after a
+    // real prior connection (a slow first connect is "connecting", not this)
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
     const { rerender } = render(<App />)
 
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'offline' })
+    rerender(<App />)
     // 10s of offline — well under the 60s threshold → no banner
     act(() => {
       vi.advanceTimersByTime(10_000)
@@ -79,6 +83,51 @@ describe('App shell', () => {
     act(() => {
       vi.advanceTimersByTime(3500)
     })
+    expect(screen.queryByText('Reconnected ✓')).not.toBeInTheDocument()
+  })
+
+  it('a slow first connect (never live before) shows no reconnect toast', () => {
+    vi.useFakeTimers()
+    mockUseLive.mockReturnValue({ devices: {}, conn: 'connecting' })
+    const { rerender } = render(<App />)
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
+    rerender(<App />)
+    expect(screen.queryByText('Reconnected ✓')).not.toBeInTheDocument()
+  })
+
+  it('long-offline banner survives reconnect churn (offline↔connecting)', () => {
+    vi.useFakeTimers()
+    // the WS cycles offline→connecting→offline during a real outage; the 60s
+    // banner clock must NOT reset on each 'connecting' attempt
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'offline' })
+    const { rerender } = render(<App />)
+    act(() => vi.advanceTimersByTime(30_000))
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'connecting' })
+    rerender(<App />)
+    act(() => vi.advanceTimersByTime(20_000))
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'offline' })
+    rerender(<App />)
+    // 30 + 20 = 50s elapsed, still under 60 → no banner yet
+    expect(screen.queryByText(/Connection lost/)).not.toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(11_000))
+    // 61s of continuous not-live → banner, despite the 'connecting' churn
+    expect(screen.getByText(/Connection lost/)).toBeInTheDocument()
+  })
+
+  it('reconnect toast is not stranded if the connection drops again within 3s', () => {
+    vi.useFakeTimers()
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
+    const { rerender } = render(<App />)
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'offline' })
+    rerender(<App />)
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
+    rerender(<App />)
+    expect(screen.getByText('Reconnected ✓')).toBeInTheDocument()
+    // drops again 1s later (its own dismiss timer must still fire)
+    act(() => vi.advanceTimersByTime(1_000))
+    mockUseLive.mockReturnValue({ devices: litter, conn: 'offline' })
+    rerender(<App />)
+    act(() => vi.advanceTimersByTime(2_500))
     expect(screen.queryByText('Reconnected ✓')).not.toBeInTheDocument()
   })
 

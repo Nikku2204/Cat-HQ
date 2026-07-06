@@ -34,7 +34,9 @@ export default function Gauge({
             r={r}
             strokeWidth={stroke}
             strokeDasharray={`${(clamped / 100) * c} ${c}`}
-            strokeLinecap="round"
+            /* round caps draw a dot even at 0-length — square them off at 0
+               so an empty/undefined gauge shows no phantom mark at 12 o'clock */
+            strokeLinecap={clamped > 0 ? 'round' : 'butt'}
           />
         </svg>
         <span className="gauge-val">

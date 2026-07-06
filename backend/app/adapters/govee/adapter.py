@@ -103,6 +103,10 @@ class GoveePlugAdapter(DeviceAdapter):
         self._last_cloud_success: datetime | None = None  # any successful call
         self._failures = 0
         self._config_failures = 0     # bad key or unresolved binding
+        # Latched power-cycle failure: stays ERROR until the plug is OBSERVED
+        # back ON (a routine poll success must not silently clear a stranded-
+        # OFF appliance). None = no outstanding power fault.
+        self._power_fault: str | None = None
 
     # ── lifecycle ────────────────────────────────────────────────────────
 
@@ -138,9 +142,20 @@ class GoveePlugAdapter(DeviceAdapter):
                 await self._poll_task
             self._poll_task = None
         # Let an in-flight (shielded) power sequence finish before closing the
-        # client — shutting down mid-cycle must not strand the plug OFF.
+        # client — shutting down mid-cycle must not strand the plug OFF. The
+        # budget must cover the WHOLE worst-case cycle: OFF + delay + every ON
+        # attempt and retry gap. (Normally the lock is free and this returns
+        # instantly.) docker-compose sets a matching stop_grace_period so a
+        # graceful stop isn't preempted by SIGKILL; if it is anyway, a client
+        # closed mid-cycle now fails LOUD (see _power_cycle catch-all).
+        budget = (
+            REQUEST_TIMEOUT_S
+            + self._cycle_delay_s
+            + POWER_ON_ATTEMPTS * (REQUEST_TIMEOUT_S + POWER_ON_RETRY_DELAY_S)
+            + 5
+        )
         with suppress(TimeoutError):
-            async with asyncio.timeout(self._cycle_delay_s + 30):
+            async with asyncio.timeout(budget):
                 async with self._power_lock:
                     pass
         await self._client.close()
@@ -298,6 +313,14 @@ class GoveePlugAdapter(DeviceAdapter):
     async def health(self) -> AdapterHealth:
         status = self._status
         detail = self._detail
+        if self._power_fault:
+            # a latched stranded-OFF failure outranks everything else
+            return AdapterHealth(
+                status=HealthStatus.ERROR,
+                detail=self._power_fault,
+                last_success_utc=self._last_cloud_success,
+                consecutive_failures=self._failures,
+            )
         if status is HealthStatus.DEGRADED and self._failures >= ERROR_AFTER_FAILURES:
             status = HealthStatus.ERROR
         if status is HealthStatus.OK and not self._device_online:
@@ -332,7 +355,13 @@ class GoveePlugAdapter(DeviceAdapter):
                     await self._client.control(
                         self._bound["device"], self._bound["model"], value
                     )
-            except TRANSIENT_ERRORS as err:
+            # Catch EVERYTHING (not just TRANSIENT_ERRORS): a GoveeAuthError,
+            # a "client is closed" GoveeError from a concurrent stop(), or an
+            # unexpected error must still fail LOUD, never silently. A bare
+            # on/off doesn't strand the appliance, but the failure still has
+            # to reach the badge and the event log. (CancelledError is a
+            # BaseException — not caught here — so shielding is preserved.)
+            except Exception as err:  # noqa: BLE001 — mains action fails loud
                 self._mark_failure(f"{command} failed: {err}")
                 await self._emit_power(
                     {"command": command, "step": "failed", "error": str(err)}
@@ -350,7 +379,9 @@ class GoveePlugAdapter(DeviceAdapter):
             try:
                 async with asyncio.timeout(REQUEST_TIMEOUT_S):
                     await self._client.control(device, model, "off")
-            except TRANSIENT_ERRORS as err:
+            # Catch-all (see _power): the OFF step failing means the plug never
+            # switched — less dangerous, but still fails loud + mapped.
+            except Exception as err:  # noqa: BLE001 — mains action fails loud
                 self._mark_failure(f"power_cycle off step failed: {err}")
                 await self._emit_power({
                     "command": "power_cycle", "step": "failed",
@@ -363,8 +394,11 @@ class GoveePlugAdapter(DeviceAdapter):
                 "delay_s": self._cycle_delay_s,
             })
             await asyncio.sleep(self._cycle_delay_s)
-            # The ON step must not fail quietly — a failure here leaves the
-            # appliance without mains. Retry, then go loudly ERROR.
+            # The ON step MUST NOT fail quietly — a failure here leaves the
+            # appliance without mains. Retry transient errors; a non-transient
+            # error (bad key, closed client) won't self-heal, so stop retrying
+            # and fall straight through to the LOUD failure. Either way the
+            # loud block below runs — no error type can skip it.
             last_err: Exception | None = None
             for attempt in range(1, POWER_ON_ATTEMPTS + 1):
                 try:
@@ -372,18 +406,25 @@ class GoveePlugAdapter(DeviceAdapter):
                         await self._client.control(device, model, "on")
                     last_err = None
                     break
-                except TRANSIENT_ERRORS as err:
+                except Exception as err:  # noqa: BLE001 — never strand OFF silently
                     last_err = err
+                    transient = isinstance(err, TRANSIENT_ERRORS)
                     logger.warning(
-                        "power_cycle ON attempt %d/%d failed for %s: %s",
-                        attempt, POWER_ON_ATTEMPTS, self.device_id, err,
+                        "power_cycle ON attempt %d/%d failed for %s (%s): %s",
+                        attempt, POWER_ON_ATTEMPTS, self.device_id,
+                        "transient" if transient else "non-transient", err,
                     )
-                    if attempt < POWER_ON_ATTEMPTS:
-                        await asyncio.sleep(POWER_ON_RETRY_DELAY_S)
+                    if transient and attempt < POWER_ON_ATTEMPTS:
+                        await asyncio.sleep(self._on_retry_delay(err))
+                    else:
+                        break  # non-transient: retrying won't help — fail now
             if last_err is not None:
-                self._set_error(
+                # Latch it: a routine poll success must NOT clear this while the
+                # plug may still be OFF (only an observed power_on=True does).
+                self._power_fault = (
                     f"POWER CYCLE FAILED — plug may still be OFF: {last_err}"
                 )
+                self._set_error(self._power_fault)
                 await self._emit_power({
                     "command": "power_cycle", "step": "failed",
                     "during": "on", "error": str(last_err),
@@ -402,8 +443,25 @@ class GoveePlugAdapter(DeviceAdapter):
         the accepted command immediately and let the 60s poll reconcile."""
         if self._live:
             self._live["power_on"] = on
+        if on and self._power_fault is not None:
+            # the plug is back ON via an accepted command → the stranded-OFF
+            # emergency is resolved. Clear the latch AND recover health out of
+            # ERROR (the next poll reconfirms); a normal on/off with no
+            # outstanding fault leaves health untouched (command success does
+            # not vouch for state freshness — see _note_cloud_success).
+            self._power_fault = None
+            self._status = HealthStatus.OK
+            self._detail = "plug switched on"
         self._note_cloud_success()
         self._notify()
+
+    @staticmethod
+    def _on_retry_delay(err: Exception) -> float:
+        """Back-off before the next ON attempt. Honor a rate-limit Retry-After
+        (capped) so we don't burn all three attempts inside one 429 window."""
+        if isinstance(err, GoveeRateLimitError) and err.retry_after:
+            return min(err.retry_after, REQUEST_TIMEOUT_S)
+        return POWER_ON_RETRY_DELAY_S
 
     async def _emit_power(self, data: dict[str, Any]) -> None:
         """Best-effort event-log write via the main.py hook — a DB hiccup
@@ -418,13 +476,21 @@ class GoveePlugAdapter(DeviceAdapter):
     # ── health bookkeeping ───────────────────────────────────────────────
 
     def _mark_poll_success(self, detail: str) -> None:
-        """A successful STATE poll — the only thing that flips health OK."""
-        self._status, self._detail = HealthStatus.OK, detail
+        """A successful STATE poll — flips health OK UNLESS a power-cycle
+        failure is latched and the plug is still not observed ON."""
         now = datetime.now(timezone.utc)
         self._last_state_refresh = now
         self._last_cloud_success = now
         self._failures = 0
         self._config_failures = 0
+        if self._power_fault and self._live.get("power_on") is True:
+            # the plug came back (owner flipped it, or a later command) — clear
+            self._power_fault = None
+        if self._power_fault:
+            # still stranded: a healthy poll must not paint over the failure
+            self._status, self._detail = HealthStatus.ERROR, self._power_fault
+        else:
+            self._status, self._detail = HealthStatus.OK, detail
         self._notify()
 
     def _note_cloud_success(self) -> None:

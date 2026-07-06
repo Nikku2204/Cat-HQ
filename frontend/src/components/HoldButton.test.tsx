@@ -135,4 +135,60 @@ describe('HoldButton', () => {
     })
     expect(onConfirm).not.toHaveBeenCalled()
   })
+
+  it('focus leaving mid-keyboard-hold cancels (blur), so nothing fires', () => {
+    vi.useFakeTimers()
+    const onConfirm = vi.fn().mockResolvedValue(undefined)
+    render(<HoldButton label="Hold me" onConfirm={onConfirm} />)
+    const btn = screen.getByRole('button')
+
+    fireEvent.keyDown(btn, { key: 'Enter' }) // start a keyboard hold
+    expect(btn).toHaveTextContent('Keep holding…')
+    fireEvent.blur(btn) // focus moves away (tab/alt-tab) before the 1.5s
+    act(() => {
+      vi.advanceTimersByTime(HOLD_MS * 2)
+    })
+    expect(onConfirm).not.toHaveBeenCalled()
+    expect(btn).toHaveTextContent('Hold me')
+  })
+
+  it('becoming disabled mid-hold aborts the pending mains command', () => {
+    vi.useFakeTimers()
+    const onConfirm = vi.fn().mockResolvedValue(undefined)
+    const { rerender } = render(
+      <HoldButton label="Hold me" onConfirm={onConfirm} disabled={false} />,
+    )
+    const btn = screen.getByRole('button')
+
+    fireEvent.pointerDown(btn)
+    expect(btn).toHaveTextContent('Keep holding…')
+    // e.g. the plug adapter drops offline while the finger is still down
+    rerender(<HoldButton label="Hold me" onConfirm={onConfirm} disabled />)
+    act(() => {
+      vi.advanceTimersByTime(HOLD_MS * 2)
+    })
+    expect(onConfirm).not.toHaveBeenCalled()
+  })
+
+  it('releases implicit pointer capture on pointerdown so slide-off can cancel', () => {
+    vi.useFakeTimers()
+    const onConfirm = vi.fn().mockResolvedValue(undefined)
+    render(<HoldButton label="Hold me" onConfirm={onConfirm} />)
+    const btn = screen.getByRole('button')
+    // jsdom has no real pointer capture; stub it to assert we RELEASE on down
+    const released: number[] = []
+    ;(btn as unknown as { hasPointerCapture: (id: number) => boolean }).hasPointerCapture =
+      () => true
+    ;(btn as unknown as { releasePointerCapture: (id: number) => void }).releasePointerCapture =
+      (id: number) => released.push(id)
+
+    fireEvent.pointerDown(btn, { pointerId: 7 })
+    expect(released).toEqual([7])
+    // then a slide-off (pointerleave) cancels the hold as normal
+    fireEvent.pointerLeave(btn)
+    act(() => {
+      vi.advanceTimersByTime(HOLD_MS * 2)
+    })
+    expect(onConfirm).not.toHaveBeenCalled()
+  })
 })

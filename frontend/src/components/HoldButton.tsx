@@ -28,8 +28,37 @@ export default function HoldButton({
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
-  const start = () => {
+  const cancel = () => {
+    if (fired.current) return
+    clearTimeout(timer.current)
+    setMode((m) => (m === 'holding' ? 'idle' : m))
+  }
+
+  // If the button becomes disabled mid-hold (e.g. the plug adapter drops
+  // offline while the finger is down), abort — a pointerup on a now-disabled
+  // control may never arrive to cancel it otherwise.
+  useEffect(() => {
+    if (disabled && mode === 'holding') cancel()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disabled])
+
+  const start = (e?: { currentTarget?: Element; pointerId?: number }) => {
     if (disabled || mode !== 'idle') return
+    // Touch pointerdown implicitly captures the pointer to the button, which
+    // SUPPRESSES pointerleave — so a "slide off to abort" gesture would never
+    // cancel and the mains command would fire anyway. Release the capture so
+    // leaving the button's bounds delivers pointerleave (→ cancel).
+    const el = e?.currentTarget as (Element & {
+      hasPointerCapture?: (id: number) => boolean
+      releasePointerCapture?: (id: number) => void
+    }) | undefined
+    if (el && e?.pointerId != null) {
+      try {
+        if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId)
+      } catch {
+        /* jsdom / unsupported — pointerleave path still covers mouse */
+      }
+    }
     fired.current = false
     setMode('holding')
     timer.current = setTimeout(async () => {
@@ -45,12 +74,6 @@ export default function HoldButton({
         setMode('idle')
       }
     }, HOLD_MS)
-  }
-
-  const cancel = () => {
-    if (fired.current) return
-    clearTimeout(timer.current)
-    setMode((m) => (m === 'holding' ? 'idle' : m))
   }
 
   return (
@@ -72,6 +95,9 @@ export default function HoldButton({
       onKeyUp={(e) => {
         if (e.key === 'Enter' || e.key === ' ') cancel()
       }}
+      // focus leaving mid-keyboard-hold (tab away, alt-tab) must abort — the
+      // keyup that would cancel lands on another element otherwise
+      onBlur={cancel}
     >
       <span className="hold-fill" aria-hidden="true" />
       <span className="hold-label">

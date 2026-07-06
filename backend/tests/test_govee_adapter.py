@@ -17,8 +17,10 @@ import app.adapters.govee.adapter as govee_adapter
 from app.adapters.base import Command, HealthStatus
 from app.adapters.govee import (
     GoveeAuthError,
+    GoveeError,
     GoveeHTTPError,
     GoveePlugAdapter,
+    GoveeRateLimitError,
     PowerBusyError,
 )
 
@@ -320,6 +322,112 @@ async def test_cycle_on_failure_is_loud(monkeypatch):
         assert events[-1]["during"] == "on"
     finally:
         await adapter.stop()
+
+
+async def test_cycle_on_NON_transient_error_is_still_loud():
+    """The critical case (adversarial review): a GoveeAuthError or a
+    'client is closed' GoveeError on the ON step is NOT in TRANSIENT_ERRORS,
+    yet must still hit the loud-failure path — never silently strand OFF.
+    Non-transient errors don't self-heal, so retries are skipped."""
+    for exc in (GoveeAuthError("key revoked"), GoveeError("client is closed")):
+        adapter, fake, events = make_adapter()
+        await adapter.start()
+        try:
+            fake.control_exc["on"] = exc
+            with pytest.raises((GoveeAuthError, GoveeError)):
+                await adapter.execute(Command(name="power_cycle"))
+            values = [call[2] for call in fake.control_calls]
+            assert values == ["off", "on"]  # no wasted retries on a dead key
+            health = await adapter.health()
+            assert health.status is HealthStatus.ERROR
+            assert "POWER CYCLE FAILED" in health.detail
+            assert events[-1] == {
+                "command": "power_cycle", "step": "failed",
+                "during": "on", "error": str(exc),
+            }
+        finally:
+            await adapter.stop()
+
+
+async def test_latched_failure_survives_a_routine_poll_while_plug_still_off(monkeypatch):
+    monkeypatch.setattr(govee_adapter, "POWER_ON_RETRY_DELAY_S", 0.01)
+    """A power-cycle failure must stay ERROR across the next poll if the plug
+    is still OFF — a healthy poll must not paint over a stranded appliance."""
+    adapter, fake, _ = make_adapter()
+    await adapter.start()
+    try:
+        fake.control_exc["on"] = GoveeHTTPError(500, "boom")
+        with pytest.raises(GoveeHTTPError):
+            await adapter.execute(Command(name="power_cycle"))
+        assert (await adapter.health()).status is HealthStatus.ERROR
+        # plug is genuinely still off in the cloud state
+        fake.state_props = [{"online": True}, {"powerState": "off"}]
+        await adapter._connect_and_poll()
+        adapter._mark_poll_success("polled")
+        health = await adapter.health()
+        assert health.status is HealthStatus.ERROR  # latched, not cleared
+        assert "POWER CYCLE FAILED" in health.detail
+    finally:
+        await adapter.stop()
+
+
+async def test_latched_failure_clears_once_plug_observed_on_again(monkeypatch):
+    monkeypatch.setattr(govee_adapter, "POWER_ON_RETRY_DELAY_S", 0.01)
+    adapter, fake, _ = make_adapter()
+    await adapter.start()
+    try:
+        fake.control_exc["on"] = GoveeHTTPError(500, "boom")
+        with pytest.raises(GoveeHTTPError):
+            await adapter.execute(Command(name="power_cycle"))
+        assert (await adapter.health()).status is HealthStatus.ERROR
+        # owner flipped it back on (or a later command did) — poll sees it ON
+        fake.state_props = [{"online": True}, {"powerState": "on"}]
+        await adapter._connect_and_poll()
+        adapter._mark_poll_success("polled")
+        assert (await adapter.health()).status is HealthStatus.OK
+    finally:
+        await adapter.stop()
+
+
+async def test_a_successful_power_command_clears_a_latched_failure(monkeypatch):
+    monkeypatch.setattr(govee_adapter, "POWER_ON_RETRY_DELAY_S", 0.01)
+    adapter, fake, _ = make_adapter()
+    await adapter.start()
+    try:
+        fake.control_exc["on"] = GoveeHTTPError(500, "boom")
+        with pytest.raises(GoveeHTTPError):
+            await adapter.execute(Command(name="power_cycle"))
+        assert (await adapter.health()).status is HealthStatus.ERROR
+        fake.control_exc.clear()  # cloud recovered
+        await adapter.execute(Command(name="power_on"))
+        assert (await adapter.health()).status is HealthStatus.OK
+    finally:
+        await adapter.stop()
+
+
+def test_on_retry_delay_honors_capped_retry_after():
+    """The ON-step back-off uses a 429's Retry-After (capped at the request
+    timeout) instead of the fixed 3s, so retries don't all burn inside one
+    rate-limit window; non-rate-limit errors keep the fixed delay."""
+    from app.adapters.govee.adapter import (
+        POWER_ON_RETRY_DELAY_S,
+        REQUEST_TIMEOUT_S,
+        GoveePlugAdapter,
+    )
+
+    assert GoveePlugAdapter._on_retry_delay(GoveeRateLimitError(20.0)) == 20.0
+    # capped at the per-request timeout, never an unbounded server value
+    assert (
+        GoveePlugAdapter._on_retry_delay(GoveeRateLimitError(9999.0))
+        == REQUEST_TIMEOUT_S
+    )
+    assert (
+        GoveePlugAdapter._on_retry_delay(GoveeRateLimitError(None))
+        == POWER_ON_RETRY_DELAY_S
+    )
+    assert (
+        GoveePlugAdapter._on_retry_delay(GoveeHTTPError(500)) == POWER_ON_RETRY_DELAY_S
+    )
 
 
 async def test_cycle_off_failure_aborts_before_the_sleep():

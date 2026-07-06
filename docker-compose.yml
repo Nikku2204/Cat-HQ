@@ -14,6 +14,12 @@ services:
     volumes:
       - ./data:/data              # SQLite lives here from M3 on
     restart: unless-stopped
+    # M5.5: a Govee power_cycle mid-flight at shutdown must run to completion
+    # (OFF→delay→ON) so a restart can't strand the LR4's mains OFF. The Govee
+    # adapter's stop() waits out an in-flight cycle (~200s worst case); give
+    # Docker's SIGTERM the same grace so it isn't SIGKILLed first. Normal
+    # shutdowns return immediately (the power lock is free).
+    stop_grace_period: 210s
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 30s

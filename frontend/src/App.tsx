@@ -101,27 +101,43 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [longOffline, setLongOffline] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const offlineSince = useRef<number | null>(null)
-  const wasOffline = useRef(false)
+  const everLive = useRef(false)
+  const droppedSinceLive = useRef(false)
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
-    if (conn === 'offline') {
-      wasOffline.current = true
+    if (conn === 'live') {
+      everLive.current = true
+      offlineSince.current = null
+      setLongOffline(false)
+      if (droppedSinceLive.current) {
+        droppedSinceLive.current = false
+        setToast('Reconnected ✓') // dismissed by the toast effect below
+      }
+    } else {
+      // 'offline' AND 'connecting' both count as "not connected": the WS
+      // cycles offline→connecting→offline during an outage, so the banner
+      // clock must run CONTINUOUSLY across reconnect attempts (resetting it
+      // on each 'connecting' made the 60s banner unreachable). Only a real
+      // prior 'live' arms the reconnect toast — a slow first connect is
+      // "connecting", never "reconnected".
+      if (everLive.current) droppedSinceLive.current = true
       if (offlineSince.current == null) offlineSince.current = Date.now()
       const elapsed = Date.now() - offlineSince.current
       if (elapsed >= LONG_OFFLINE_MS) setLongOffline(true)
       else timer = setTimeout(() => setLongOffline(true), LONG_OFFLINE_MS - elapsed)
-    } else {
-      offlineSince.current = null
-      setLongOffline(false)
-      if (conn === 'live' && wasOffline.current) {
-        wasOffline.current = false
-        setToast('Reconnected ✓')
-        timer = setTimeout(() => setToast(null), 3000)
-      }
     }
     return () => clearTimeout(timer)
   }, [conn])
+
+  // Toast auto-dismiss lives in its own effect keyed on `toast`, so a second
+  // drop within 3s of reconnecting can't clear the dismiss timer and strand
+  // the toast on screen.
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   // first snapshot not in yet → skeleton shimmer, not a flash of "not
   // configured". (A live hello with zero adapters means genuinely empty.)
