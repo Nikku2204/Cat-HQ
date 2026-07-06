@@ -213,36 +213,52 @@ class Recorder:
         litterrobot = self._adapters.get("litterrobot")
         if litterrobot is not None and litterrobot.connected:
             try:
-                for a in await litterrobot.get_activity(limit=HISTORY_FETCH_LIMIT):
+                activities = await litterrobot.get_activity(limit=HISTORY_FETCH_LIMIT)
+            except Exception as err:  # noqa: BLE001 — one vendor down ≠ both
+                logger.warning("litterrobot history ingest failed: %s", err)
+                activities = []
+            for a in activities:
+                # Per-row: one malformed vendor row must not shadow the rest
+                # of the batch for as long as it sits in the fetch window.
+                try:
                     ts = normalize_iso(a["timestamp_utc"])
-                    rows.append({
+                    row = {
                         "device_id": "litterrobot",
                         "event_type": "activity",
                         "ts_utc": ts,
                         "source": "history",
                         "data": {"action": a["action"]},
                         "dedupe_key": f"lr:{ts}:{a['action'][:100]}",
-                    })
-            except Exception as err:  # noqa: BLE001 — one vendor down ≠ both
-                logger.warning("litterrobot history ingest failed: %s", err)
+                    }
+                except Exception as err:  # noqa: BLE001
+                    logger.warning("skipping malformed litterrobot row %r: %s", a, err)
+                    continue
+                rows.append(row)
 
         feeder = self._adapters.get("feeder")
         if feeder is not None and feeder.connected:
             try:
-                for e in await feeder.get_feed_log(days=2, limit=HISTORY_FETCH_LIMIT):
+                feed_log = await feeder.get_feed_log(days=2, limit=HISTORY_FETCH_LIMIT)
+            except Exception as err:  # noqa: BLE001
+                logger.warning("feeder history ingest failed: %s", err)
+                feed_log = []
+            for e in feed_log:
+                try:
                     if not e["timestamp_utc"]:
                         continue
                     ts = normalize_iso(e["timestamp_utc"])
-                    rows.append({
+                    row = {
                         "device_id": "feeder",
                         "event_type": "feed",
                         "ts_utc": ts,
                         "source": "history",
                         "data": {"portions": e["portions"]},
                         "dedupe_key": f"pl:{ts}:{e['portions']}",
-                    })
-            except Exception as err:  # noqa: BLE001
-                logger.warning("feeder history ingest failed: %s", err)
+                    }
+                except Exception as err:  # noqa: BLE001
+                    logger.warning("skipping malformed feeder row %r: %s", e, err)
+                    continue
+                rows.append(row)
 
         if not rows:
             return

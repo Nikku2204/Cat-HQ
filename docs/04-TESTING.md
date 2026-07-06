@@ -137,10 +137,10 @@ connected` with scriptable returns/raises. Settings override:
     downtime produces an event, unchanged does not.
   - history ingest idempotency: same rows twice → no duplicates (dedupe_key
     UNIQUE + do_nothing); feeder rows with falsy timestamps skipped row-by-
-    row; a MALFORMED timestamp aborts only that adapter's batch for the
-    cycle (known gap: while the bad row sits in the fetch window it shadows
-    newer rows — per-row try/except fix queued for a feature session); one
-    adapter failing doesn't block the other.
+    row; a MALFORMED row (bad timestamp, missing key) is skipped row-by-row
+    too — rows before AND after it land (gap closed by the M5.5 feature
+    session, 2026-07-05; a bad row in the fetch window no longer shadows
+    newer rows); one adapter failing doesn't block the other.
   - health_change events on status transitions.
 
 ## Phase 3 — frontend units

@@ -306,15 +306,14 @@ async def test_feeder_rows_without_timestamp_skipped_row_by_row(
     ]
 
 
-async def test_malformed_lr_timestamp_aborts_lr_batch_feeder_still_lands(
+async def test_malformed_row_skipped_rest_of_batch_still_lands(
     recorder, fake_lr, fake_feeder, db
 ):
-    """Per the amended docs/04 bullet (which also records the known gap):
-    normalize_iso raising on a malformed litterrobot timestamp aborts the
-    REST of litterrobot's batch that cycle (rows appended before the bad
-    one still insert; rows after it are lost while the bad row stays in
-    the fetch window — per-row try/except fix queued for a feature
-    session). The per-adapter try means feeder rows still land.
+    """The docs/04 known gap, closed (M5.5 feature session): a malformed
+    vendor row is skipped row-by-row — rows before AND after it in the
+    same batch still insert, so a bad row sitting in the fetch window can
+    no longer shadow newer rows. Feeder rows land regardless (per-adapter
+    isolation unchanged).
     """
     fake_lr.activity = [
         {"timestamp_utc": "2026-07-05T08:00:00+00:00", "action": "Clean Cycle In Progress"},
@@ -325,8 +324,28 @@ async def test_malformed_lr_timestamp_aborts_lr_batch_feeder_still_lands(
     await recorder._ingest_history()
     events = await fetch_events(db)
     lr_ts = [e.ts_utc for e in events if e.device_id == "litterrobot"]
-    assert lr_ts == ["2026-07-05T08:00:00+00:00"]  # pre-failure row only
+    assert lr_ts == [
+        "2026-07-05T08:00:00+00:00",
+        "2026-07-05T10:00:00+00:00",  # the row AFTER the bad one survives
+    ]
     assert [e.device_id for e in events if e.device_id == "feeder"] == ["feeder"]
+
+
+async def test_malformed_feeder_row_skipped_row_by_row(
+    recorder, fake_feeder, db
+):
+    """Same per-row isolation on the feeder side (portions KeyError)."""
+    fake_feeder.feed_log = [
+        {"timestamp_utc": "2026-07-05T08:00:00+00:00", "portions": 1},
+        {"timestamp_utc": "2026-07-05T08:30:00+00:00"},  # no portions key
+        {"timestamp_utc": "2026-07-05T09:00:00+00:00", "portions": 2},
+    ]
+    await recorder._ingest_history()
+    events = await fetch_events(db)
+    assert [e.ts_utc for e in events] == [
+        "2026-07-05T08:00:00+00:00",
+        "2026-07-05T09:00:00+00:00",
+    ]
 
 
 async def test_one_adapter_raising_does_not_block_the_other(
