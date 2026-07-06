@@ -44,7 +44,7 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
-## Current state (2026-07-05, late evening — M0–M5 ALL ACCEPTED ✅)
+## Current state (2026-07-05, late evening — M0–M5.5 ALL ACCEPTED ✅)
 PWA installed on the owner's phone, live on LAN, phone-triggered clean
 verified (M1+M4+M5 accepted; see docs/03 notes). CATHQ_AUTH_TOKEN is a
 real random value now (backend refuses ""/"change-me"; owner reads it
@@ -52,27 +52,27 @@ via `grep CATHQ_AUTH_TOKEN .env`). Secret safety is mechanized: pre-
 commit hook at scripts/githooks (core.hooksPath is set locally; covers
 *_TOKEN/_PASSWORD/_PASS/_EMAIL/_KEY/_SECRET), hardened .gitignore,
 README "Secrets & publishing safety". No git remote exists.
-M5.5 DEPLOYED (docs/05-PLUG-AND-UX-SPEC.md) 2026-07-05, owner approved
-the look. `docker compose up -d --build` replaced the live LAN container
-with Part A (Govee plug adapter, d2fc17e) + Part B (dashboard UX v2
-"midnight den", 82e57aa) + adversarial-review fixes (3931cfb). Post-
-deploy /health: all four adapters OK — litterrobot, feeder, and BOTH
-plugs bound+connected (plug_litterrobot→"chutku potty", plug_feeder→
-"chutku food"; read-only discovery only, NO power command ever issued).
-verify_m5.sh 17/17 + extended smoke 19/19 green vs the live container;
-suites backend 287 / frontend 131; precache 236 KiB; zero new runtime
-deps. Pre-deploy review (4 lenses / 34 agents) found + fixed confirmed
-mains-safety bugs — CRITICAL: a non-transient error (bad key / closed
-client) on the power_cycle ON step escaped the loud-failure path and
-could strand the LR4 OFF silently (now catch-all + latched ERROR +
-compose stop_grace_period 210s + HoldButton touch/keyboard cancel).
-ONLY REMAINING for M5.5 acceptance: the OWNER-WATCHED plug drill —
-toggle a plug off→on from the red power zone + a deliberate LR4
-power-cycle, watching the hardware (mains rule, no automation), then
-document the LR4's observed power-restore behavior in docs/03 and tick
-the drill box. The docs/04 test session is DONE. Next milestone after
-the drill: M6 (Tapo camera — owner enables third-party compat + camera
-account, fills model into docs/00).
+M5.5 ✅ ACCEPTED 2026-07-05 (docs/05-PLUG-AND-UX-SPEC.md). Live LAN
+container runs Part A (Govee plug adapter) + Part B (dashboard UX v2
+"midnight den") + adversarial-review fixes + owner feedback. All four
+adapters OK — litterrobot, feeder, and BOTH plugs bound+connected
+(plug_litterrobot→"chutku potty", plug_feeder→"chutku food"). The
+OWNER-WATCHED Restart drill PASSED: the plug cycled OFF→ON and the LR4
+rebooted back to Ready (observed power-restore: it reaches Ready on its
+own after mains returns). Shipped UX: single context-aware power control
+labelled "Restart" (plain word for power_cycle; backend command name
+unchanged), a power zone on BOTH cards, and Pinsu's real photos on the
+login (face crop, pinsu-login.jpg) + litter status ring (pinsu.jpg);
+tiny header keeps the pixel cat. Suites backend 287 / frontend 134;
+precache ~281 KiB (<300); zero new runtime deps.
+DEPLOY GOTCHA (2026-07-05): Docker Hub had a flaky window where
+`compose up --build` timed out pulling python:3.12-slim layers; fix was
+`docker pull python:3.12-slim` first (warms cache), then rebuild.
+Owner UX taste (memory plain-minimal-ui): one obvious control, plain
+words, hide edge cases in the API.
+NEXT: M6 (Tapo camera — owner enables third-party compat + camera
+account in the Tapo app, fills model into docs/00). The docs/04 test
+session is DONE; from M6 on new code lands with its tests.
 Then M6 (Tapo camera: owner enables third-party compat + camera
 account in the Tapo app, fills model into docs/00).
 Tooling: Node 26 via brew; go2rtc pinned 1.9.14; playwright OUTSIDE

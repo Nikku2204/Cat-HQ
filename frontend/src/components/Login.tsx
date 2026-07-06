@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { checkToken, saveToken } from '../api'
+import pinsuLogin from '../assets/pinsu-login.jpg'
 import PinsuAvatar from './PinsuAvatar'
 
 export default function Login({ onSuccess }: { onSuccess: (token: string) => void }) {
@@ -30,7 +31,7 @@ export default function Login({ onSuccess }: { onSuccess: (token: string) => voi
   return (
     <div className="login">
       <form className="login-card" onSubmit={submit}>
-        <PinsuAvatar className="login-photo" />
+        <PinsuAvatar className="login-photo" src={pinsuLogin} />
         <h1>Cat HQ</h1>
         <p className="muted">Paste the access token to connect.</p>
         <input

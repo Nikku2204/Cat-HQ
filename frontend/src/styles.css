@@ -526,6 +526,9 @@ button {
   height: 76px;
   margin: 0 auto 2px;
   border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  /* the login source is already a tight face crop → center it (the ring's
+     uncropped photo keeps the class default of center 30%) */
+  object-position: center;
 }
 .avatar.conn-live {
   border-color: var(--ok);

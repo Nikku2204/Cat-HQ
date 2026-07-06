@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M5.5 — power control + UX v2**: code DEPLOYED to the live LAN container 2026-07-05 (Part A Govee adapter + Part B UX v2 "midnight den"), owner approved the look; only the owner-watched plug drill remains before full acceptance. M1 ✅ M4 ✅ M5 ✅. Then M6 (video). |
+| Current milestone | **M6 — live video** (next). M5.5 ✅ ACCEPTED 2026-07-05: Govee power control + UX v2 deployed, owner approved the look, and the owner-watched Restart drill passed. M1 ✅ M4 ✅ M5 ✅ M5.5 ✅. |
 | Last updated | 2026-07-05 (late evening) |
-| Blockers | Owner-watched plug drill pending (mains rule — owner must watch the LR4): toggle a plug off→on from the power zone, run a deliberate power-cycle, document the LR4 power-restore behavior. Govee key + both plug bindings live and connected read-only. Remaining fill-in: Tapo model. Hardware purchase pending. |
+| Blockers | None for M6 code. Owner still needs to: enable Tapo third-party compatibility + create the camera account in the Tapo app, and fill the Tapo model into docs/00. Hardware purchase (home box) pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -118,9 +118,16 @@ on LAN, clean triggered from the installed app. ✅*
 
 ### M5.5 — Power control (Govee plugs) + UX v2 (est. 8–14h) — spec: `docs/05-PLUG-AND-UX-SPEC.md`
 - [x] Govee adapter: client + discovery, explicit plug→appliance binding, state polling, `power_cycle` command (developed fully against mocks)
-- [ ] Live verification WITH OWNER WATCHING: plug toggle, then a deliberate LR4 power-cycle recovery drill (plugs switch mains — physical-action rules apply)
+- [x] Live verification WITH OWNER WATCHING: Restart (power-cycle) drill run from the phone with the LR4 watched — the plug cycled and the LR4 rebooted back to Ready; drill passed 2026-07-05
 - [x] Dashboard UX v2 per spec (status ring, gauges, Pinsu presence line, weight sparkline, feed timeline, motion) — owner approved via screenshots; DEPLOYED to the live LAN container 2026-07-05
 - [x] Tests land with the code (docs/04 rule 4); smoke script extended read-only
+
+**M5.5 ✅ ACCEPTED 2026-07-05:** a stuck LR4 can be power-cycled ("Restart")
+from the phone and recovery is visible in the app; owner approved the "midnight
+den" look on their phone. The owner-watched Restart drill passed — the bound
+plug cycled OFF→ON and the LR4 rebooted and returned to Ready. (LR4
+power-restore behavior observed: it comes back up and reaches Ready after the
+plug restores mains; no manual intervention needed.)
 
 *DEPLOYED 2026-07-05 (late session): `docker compose up -d --build` replaced
 the live LAN container with Part A + Part B. Post-deploy /health: all four
