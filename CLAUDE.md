@@ -44,7 +44,7 @@ React PWA frontend, Tailscale for remote access.
 - Backend logs: `docker compose logs -f backend`
 - Backend dev loop (no Docker): `cd backend && pip install -e . && uvicorn app.main:app --reload`
 
-## M5.7 "The Den" MUST v1 BUILT 2026-07-06 (awaiting owner phone approval)
+## M5.7 "The Den" MUST v1 DEPLOYED 2026-07-06 (owner-approved, live on LAN)
 Third 🌙 Den tab (between Home and Diary) — the insights dashboard, MUST
 sections only per docs/06: "Pinsu, right now" hero (dual `GoalRing` +
 weight pill + mood mascot + ambient time-of-day scene + live litter chip),
@@ -64,12 +64,15 @@ feeds-only until a 7-day baseline exists (cold DB → one meals ring now).
 Everything cold-start-aware ("still learning") — the DB is only ~1–2 days
 deep. Suites backend 287 / frontend 192 (+58); precache 261 KiB (<300);
 zero new runtime deps; prefers-reduced-motion respected; read-only smoke
-26/26 vs the live container via the vite dev proxy. Real-data screenshot
-posted (honest cold-start night view). Docker rebuild DEFERRED until the
-owner approves on the phone. SHOULD/COULD (heatmap, mealtime timeline,
-Wrapped recap, forecasts, milestones/badges) are the next session.
-Built SOLO under ultracode effort (owner said "work solo" in the prompt —
-honored despite workflow orchestration being enabled).
+26/26. Owner approved the look from the screenshot and said "rebuild" →
+DEPLOYED: `docker pull python:3.12-slim` (warm cache, deploy gotcha) then
+`docker compose up -d --build`; post-deploy /health all four adapters ok,
+backend healthy, served bundle is the new index-*.js with the Den; smoke
+26/26 vs the LIVE container. MUST v1 is live on the phone. SHOULD/COULD
+(heatmap, mealtime timeline, Wrapped recap [always-live], forecasts,
+milestones/badges) are the next session. Built SOLO under ultracode effort
+(owner said "work solo" in the prompt — honored despite workflow
+orchestration being enabled).
 
 ## Current state (2026-07-05, late evening — M0–M5.5 ALL ACCEPTED ✅)
 PWA installed on the owner's phone, live on LAN, phone-triggered clean

@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Current milestone | **M5.7 — Insights Dashboard**: MUST v1 (hero + vitals + weight watch) BUILT 2026-07-06, screenshots posted, awaiting owner phone approval + live rebuild. SHOULD/COULD (heatmap, mealtime, recap, forecasts, milestones) queued next. Then **M6 — live video**. M0–M5.5 ✅ ACCEPTED. |
+| Current milestone | **M5.7 — Insights Dashboard**: MUST v1 (hero + vitals + weight watch) BUILT + owner-approved + **DEPLOYED to the live LAN container 2026-07-06**. SHOULD/COULD (heatmap, mealtime, recap, forecasts, milestones) queued next. Then **M6 — live video**. M0–M5.5 ✅ ACCEPTED. |
 | Last updated | 2026-07-06 |
-| Blockers | None for M5.7 MUST — built on existing data, client-side, tests green (backend 287 / frontend 192), precache 261 KiB. Awaiting owner approval on the phone before the docker rebuild. For M6: owner enables Tapo third-party compat + camera account and fills the model into docs/00. Home-box purchase pending. |
+| Blockers | None. M5.7 MUST is live (all four adapters ok post-deploy; read-only smoke 26/26 vs the container; precache 261 KiB). For M6: owner enables Tapo third-party compat + camera account and fills the model into docs/00. Home-box purchase pending. |
 
 > For Claude: resume at the first milestone with unchecked boxes. When acceptance criteria pass, give the owner an updated copy of that milestone section to paste into this file.
 
@@ -231,8 +231,15 @@ live** (applies when the recap SHOULD lands). Precache 261 KiB (< 300);
 backend 287 / frontend 192 green; read-only smoke 26/26 vs the live container
 via the dev proxy. Real-data screenshot is an honest cold-start night view:
 single meals ring (no 7-day visit baseline yet), "still learning" states, 13.1
-lb in range, care streak Feeder/no-faults 4d. Docker rebuild DEFERRED until
-the owner approves the look on their phone — then tick Accept.*
+lb in range, care streak Feeder/no-faults 4d.*
+
+*DEPLOYED 2026-07-06: owner approved the look from the screenshot and said
+"rebuild". `docker pull python:3.12-slim` (warm cache) then
+`docker compose up -d --build` replaced the live container — the served bundle
+is the new index-*.js with the Den; post-deploy /health all four adapters ok;
+backend healthy + go2rtc up; read-only smoke 26/26 vs the LIVE container (it
+even caught Pinsu mid-visit: ring busy "Cat Sensor Timing", "visited 8m ago").
+MUST v1 is live on the phone. SHOULD/COULD sections are the next session.*
 
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC
