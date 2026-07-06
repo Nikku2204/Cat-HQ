@@ -1,0 +1,50 @@
+#!/bin/sh
+# Cat HQ pre-commit hook — keeps secrets out of git mechanically, so safety
+# doesn't depend on anyone remembering the rules.
+#
+# Enable once per clone (hooks aren't copied by git automatically):
+#     git config core.hooksPath scripts/githooks
+#
+# Blocks, in order:
+#   1. staging any .env* file (only .env.example is allowed)
+#   2. a non-empty TOKEN/PASSWORD/EMAIL/PASS value inside .env.example
+#   3. any staged content that contains an actual secret VALUE from .env
+# Never prints secret values — only variable names.
+
+fail() {
+    echo "pre-commit BLOCKED: $1" >&2
+    echo "(bypass only if you are CERTAIN: git commit --no-verify)" >&2
+    exit 1
+}
+
+staged=$(git diff --cached --name-only)
+
+# 1) env files themselves
+if echo "$staged" | grep -E '(^|/)\.env(\..+)?$' | grep -v '\.env\.example$' | grep -q .; then
+    fail "an .env file is staged — secrets never go in git"
+fi
+
+# 2) the example file must stay value-free for secret-looking keys
+if echo "$staged" | grep -q '\.env\.example$'; then
+    if git show :.env.example 2>/dev/null \
+        | grep -E '^[A-Z_]*(TOKEN|PASSWORD|PASS|EMAIL)=..*' | grep -q .; then
+        fail ".env.example carries a non-empty secret-looking value — examples stay empty"
+    fi
+fi
+
+# 3) staged content must not contain real values from the local .env
+if [ -f .env ]; then
+    while IFS='=' read -r var val; do
+        case "$var" in
+            \#*|'') continue ;;
+            *_TOKEN|*_PASSWORD|*_PASS|*_EMAIL) ;;
+            *) continue ;;
+        esac
+        [ -n "$val" ] || continue
+        if git diff --cached | grep -qF -- "$val"; then
+            fail "staged changes contain the VALUE of $var from .env"
+        fi
+    done < .env
+fi
+
+exit 0

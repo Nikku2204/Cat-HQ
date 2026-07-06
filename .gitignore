@@ -1,17 +1,31 @@
-# secrets
+# ── secrets ──────────────────────────────────────────────────────────────
+# Real values live ONLY in .env files; .env.example (tracked) documents the
+# variables with empty values. The pre-commit hook (scripts/githooks)
+# enforces this even if these patterns drift — keep both in sync.
 .env
+.env.*
+!.env.example
+# key material (VAPID keys arrive at M8; never track any of it)
+*.pem
+*.key
+*.p12
 
-# runtime data (SQLite etc.)
+# ── runtime data (SQLite etc.) ───────────────────────────────────────────
 data/
+*.db
+*.db-wal
+*.db-shm
 
-# python
+# ── python ───────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 .venv/
+*.egg-info/
+.pytest_cache/
 
-# frontend (from M5)
+# ── frontend (from M5) ───────────────────────────────────────────────────
 node_modules/
 dist/
 
-# python build artifacts
-*.egg-info/
+# ── OS noise ─────────────────────────────────────────────────────────────
+.DS_Store

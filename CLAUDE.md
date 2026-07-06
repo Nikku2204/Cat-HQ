@@ -23,8 +23,10 @@ React PWA frontend, Tailscale for remote access.
   (manual feed, clean cycle) or logs into a vendor cloud for the first time —
   they need to watch the hardware.
 - Secrets live only in `.env` (gitignored). Keep `.env.example` in sync with
-  every new variable. Never echo `.env` contents or credentials into output,
-  commits, or logs.
+  every new variable (empty values only). Never echo `.env` contents or
+  credentials into output, commits, or logs. A pre-commit hook enforces this
+  (scripts/githooks — active via core.hooksPath; see README "Secrets &
+  publishing safety"). Never bypass it with --no-verify.
 - Write complete, runnable files. Respect the repo layout in `docs/01`.
 - When a milestone's acceptance criteria pass, update the checkboxes and the
   status table in `docs/03-ROADMAP.md`, then commit.

@@ -42,6 +42,34 @@ npm run dev        # Vite on :5173, proxies /devices /events /health /ws → :80
     go2rtc/go2rtc.yaml     video restreamer config (wired up for real at M6)
     data/                  created at runtime; SQLite lives here from M3
 
+## Secrets & publishing safety
+
+Rules that keep credentials out of git — they apply to every future change:
+
+- Real values live **only in `.env`** (gitignored; verified never-tracked
+  against full history on 2026-07-05). `.env.example` documents every
+  variable with **empty** values — adding a config variable means adding an
+  empty, commented line there, never a real value.
+- A committed **pre-commit hook** enforces this mechanically. Enable it once
+  per clone (git does not auto-install hooks):
+
+      git config core.hooksPath scripts/githooks
+
+  It blocks: staging any `.env*` file (except `.env.example`), non-empty
+  TOKEN/PASSWORD/EMAIL values in `.env.example`, and any staged content
+  containing an actual secret value from your local `.env`. It prints
+  variable names only, never values.
+- The backend **refuses to start** if `CATHQ_AUTH_TOKEN` is empty or still
+  the placeholder — a default token in a public repo must never gate
+  hardware.
+- No git remote is configured today. Before ever pushing this repo anywhere:
+  run `git ls-files | grep -i '\.env'` (must show only `.env.example`) and
+  prefer a **private** repo — the docs contain personal details, and
+  `backend/app/adapters/petlibro/` is a GPL-3.0-attributed port (fine to
+  publish, but mind the license if the repo's own license ever changes).
+- Never paste `.env` contents into logs, issues, or chats — including
+  sessions with Claude.
+
 ## Working agreement
 
 Claude writes code and may run builds/tests/curl checks; physical device
