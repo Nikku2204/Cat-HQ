@@ -63,17 +63,24 @@ function describe(e: EventOut): { icon: string; text: string } {
       if (d['command']) {
         const cmd = s('command')
         const step = s('step')
+        // user-facing names: power_cycle is a "restart" in the UI
+        const cmdLabel =
+          cmd === 'power_cycle'
+            ? 'Restart'
+            : cmd === 'power_on'
+              ? 'Switch on'
+              : 'Switch off'
         if (step === 'failed') {
           const during = d['during'] ? ` during ${s('during')}` : ''
-          return { icon: '⚡', text: `${cmd} FAILED${during}: ${s('error')}` }
+          return { icon: '⚡', text: `${cmdLabel} FAILED${during}: ${s('error')}` }
         }
         if (cmd === 'power_cycle') {
           return {
             icon: '⚡',
             text:
               step === 'off'
-                ? `Power cycle — plug OFF (${s('delay_s')}s)`
-                : 'Power cycle — plug back ON',
+                ? `Restart — powered off (${s('delay_s')}s)`
+                : 'Restart — powered back on',
           }
         }
         return { icon: '⚡', text: cmd === 'power_on' ? 'Plug switched ON' : 'Plug switched OFF' }

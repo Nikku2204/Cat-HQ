@@ -310,8 +310,8 @@ describe('HistoryView', () => {
     )
     render(<HistoryView />)
 
-    expect(await screen.findByText('Power cycle — plug OFF (8s)')).toBeInTheDocument()
-    expect(screen.getByText('Power cycle — plug back ON')).toBeInTheDocument()
+    expect(await screen.findByText('Restart — powered off (8s)')).toBeInTheDocument()
+    expect(screen.getByText('Restart — powered back on')).toBeInTheDocument()
     expect(screen.getByText('Plug switched ON')).toBeInTheDocument()
     expect(screen.getByText('Plug off (observed)')).toBeInTheDocument()
     // plug devices share one "plug" chip
@@ -342,7 +342,7 @@ describe('HistoryView', () => {
     await screen.findByText('Fed 2 portions')
     expect(container.querySelectorAll('.event-fault')).toHaveLength(2)
     expect(
-      screen.getByText('power_cycle FAILED during on: HTTP 500'),
+      screen.getByText('Restart FAILED during on: HTTP 500'),
     ).toBeInTheDocument()
   })
 

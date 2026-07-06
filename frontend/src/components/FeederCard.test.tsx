@@ -16,6 +16,10 @@ vi.mock('../api', () => ({
     clean: vi.fn(),
     feed: vi.fn(),
     events: vi.fn(),
+    plugOn: vi.fn(),
+    plugOff: vi.fn(),
+    plugCycle: vi.fn(),
+    health: vi.fn(),
   },
 }))
 
@@ -68,6 +72,24 @@ function feedEvt(overrides: Partial<EventOut> = {}): EventOut {
     source: 'history',
     data: { portions: 4 },
     ...overrides,
+  }
+}
+
+function plugEntry(attrOverrides: Record<string, unknown> = {}): DeviceEntry {
+  return {
+    health: health(),
+    state: {
+      device_id: 'plug_feeder',
+      device_type: 'plug',
+      fetched_at_utc: '2026-07-05T10:00:00Z',
+      attributes: {
+        name: 'chutku food',
+        model: 'H5083',
+        online: true,
+        power_on: true,
+        ...attrOverrides,
+      },
+    },
   }
 }
 
@@ -311,5 +333,36 @@ describe('FeederCard', () => {
     expect(mockFeed).toHaveBeenCalledTimes(1)
     expect(screen.getByText('Feed failed: dispenser jam')).toBeInTheDocument()
     expect(btn).toBeEnabled() // ConfirmButton returned to idle after failure
+  })
+
+  // ── plug power zone (M5.5) ─────────────────────────────────────────────
+
+  it('renders no power zone when no plug is bound', async () => {
+    render(<FeederCard entry={feederEntry()} />)
+    await flushEffects()
+    expect(screen.queryByText('⚡ Power')).not.toBeInTheDocument()
+  })
+
+  it('renders the power zone collapsed when a plug is bound and healthy', async () => {
+    render(<FeederCard entry={feederEntry()} plug={plugEntry()} />)
+    await flushEffects()
+    expect(screen.getByText('⚡ Power')).toBeInTheDocument()
+    expect(screen.getByText('plug on')).toBeInTheDocument()
+    expect(screen.queryByText('Hold to restart')).not.toBeInTheDocument()
+  })
+
+  it('says "plug is off" when the feeder is offline AND its plug reports off', async () => {
+    render(
+      <FeederCard
+        entry={feederEntry({ online: false })}
+        plug={plugEntry({ power_on: false })}
+      />,
+    )
+    await flushEffects()
+    expect(
+      screen.getByText('Plug is off — that’s why the feeder is offline.'),
+    ).toBeInTheDocument()
+    // auto-expanded with the single restore action
+    expect(screen.getByText('Hold to switch plug ON')).toBeInTheDocument()
   })
 })

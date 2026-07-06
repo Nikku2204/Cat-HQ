@@ -47,27 +47,26 @@ export default function PowerZone({
     }
   }
 
-  const cycle = (
-    <HoldButton
-      key="cycle"
-      label="Hold to power-cycle"
-      onConfirm={run(() => api.plugCycle(plugId), 'Power cycle complete ✓')}
-      disabled={!reachable}
-    />
-  )
-  const toggle = (
-    <HoldButton
-      key="toggle"
-      className="btn hold secondary"
-      label={powerOn === false ? 'Hold to switch plug ON' : 'Hold to switch plug OFF'}
-      onConfirm={
-        powerOn === false
-          ? run(() => api.plugOn(plugId), 'Plug switched on ✓')
-          : run(() => api.plugOff(plugId), 'Plug switched off ✓')
-      }
-      disabled={!reachable}
-    />
-  )
+  // ONE context-aware action, not two: when the plug is ON, the useful thing
+  // is a RESTART (off → wait → on — the recovery remedy, ends ON; "restart"
+  // is the plain-English name for a power-cycle). When it's OFF, the useful
+  // thing is to switch it back ON. A standalone "switch OFF" is deliberately
+  // omitted (you rarely want to kill the appliance's mains and leave it dead;
+  // restart covers the reset). Still available via the API (plugOff).
+  const action =
+    powerOn === false ? (
+      <HoldButton
+        label="Hold to switch plug ON"
+        onConfirm={run(() => api.plugOn(plugId), 'Plug switched on ✓')}
+        disabled={!reachable}
+      />
+    ) : (
+      <HoldButton
+        label="Hold to restart"
+        onConfirm={run(() => api.plugCycle(plugId), 'Restart complete ✓')}
+        disabled={!reachable}
+      />
+    )
 
   return (
     <div className={open ? 'power-zone open' : 'power-zone'}>
@@ -89,10 +88,12 @@ export default function PowerZone({
       {open && (
         <div className="power-actions">
           <p className="power-warning">
-            Switches mains power{!reachable ? ' — plug adapter not connected' : ''}.
+            {powerOn === false
+              ? 'Restores mains power to the appliance'
+              : 'Restarts the appliance (off, wait, back on)'}
+            {!reachable ? ' — plug adapter not connected' : ''}.
           </p>
-          {/* when the plug is off, switching it back ON is the likely intent */}
-          {powerOn === false ? [toggle, cycle] : [cycle, toggle]}
+          {action}
           {notice && (
             <p className={notice.ok ? 'notice ok' : 'notice error'}>{notice.text}</p>
           )}

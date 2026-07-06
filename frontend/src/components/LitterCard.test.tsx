@@ -243,7 +243,7 @@ describe('LitterCard', () => {
     expect(screen.getByText('PD')).toBeInTheDocument()
     expect(screen.getByText('Pinch detected')).toBeInTheDocument()
     // fault + bound plug → the power zone auto-expands with the cycle hold
-    expect(screen.getByText('Hold to power-cycle')).toBeInTheDocument()
+    expect(screen.getByText('Hold to restart')).toBeInTheDocument()
   })
 
   it('renders the Pinsu presence line and weight sparkline from pet_weight events', async () => {
@@ -278,7 +278,7 @@ describe('LitterCard', () => {
     expect(screen.getByText('⚡ Power')).toBeInTheDocument()
     expect(screen.getByText('plug on')).toBeInTheDocument()
     // collapsed: no hold controls until the owner opens the zone
-    expect(screen.queryByText('Hold to power-cycle')).not.toBeInTheDocument()
+    expect(screen.queryByText('Hold to restart')).not.toBeInTheDocument()
   })
 
   it('says "plug is off" when the robot is offline AND the plug reports off', async () => {

@@ -63,15 +63,17 @@ describe('PowerZone', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('is collapsed by default; tapping the head reveals the hold controls', () => {
+  it('is collapsed by default; tapping the head reveals the single control', () => {
     render(<PowerZone plugId="plug_litterrobot" plug={plug()} />)
     expect(screen.getByText('⚡ Power')).toBeInTheDocument()
     expect(screen.getByText('plug on')).toBeInTheDocument()
-    expect(screen.queryByText('Hold to power-cycle')).not.toBeInTheDocument()
+    expect(screen.queryByText('Hold to restart')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /⚡ Power/ }))
-    expect(screen.getByText('Hold to power-cycle')).toBeInTheDocument()
-    expect(screen.getByText('Hold to switch plug OFF')).toBeInTheDocument()
+    // ONE action when the plug is on: power-cycle. No standalone OFF button.
+    expect(screen.getByText('Hold to restart')).toBeInTheDocument()
+    expect(screen.queryByText(/switch plug OFF/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Hold to/ })).toHaveLength(1)
   })
 
   it('auto-expands when autoExpand is set and shows the hint', () => {
@@ -84,35 +86,28 @@ describe('PowerZone', () => {
       />,
     )
     expect(screen.getByText('Plug is off — that’s why.')).toBeInTheDocument()
-    // plug is OFF → switching it back on is the first suggestion
+    // plug is OFF → the single action is to switch it back ON (no power-cycle)
     expect(screen.getByText('Hold to switch plug ON')).toBeInTheDocument()
+    expect(screen.queryByText('Hold to restart')).not.toBeInTheDocument()
     expect(screen.getByText('plug OFF')).toBeInTheDocument()
   })
 
-  it('a full hold on power-cycle calls api.plugCycle with the plug id', async () => {
+  it('a full hold on "restart" calls api.plugCycle (off→wait→on) with the plug id', async () => {
     vi.useFakeTimers()
     mockCycle.mockResolvedValue({ command: 'power_cycle', accepted: true, off_seconds: 8 })
     render(<PowerZone plugId="plug_litterrobot" plug={plug()} autoExpand />)
 
-    await hold(screen.getByRole('button', { name: 'Hold to power-cycle' }))
+    await hold(screen.getByRole('button', { name: 'Hold to restart' }))
 
     expect(mockCycle).toHaveBeenCalledTimes(1)
     expect(mockCycle).toHaveBeenCalledWith('plug_litterrobot')
-    expect(screen.getByText('Power cycle complete ✓')).toBeInTheDocument()
+    expect(screen.getByText('Restart complete ✓')).toBeInTheDocument()
     expect(mockOn).not.toHaveBeenCalled()
     expect(mockOff).not.toHaveBeenCalled()
   })
 
-  it('the toggle hold calls plugOff when on, plugOn when off', async () => {
+  it('when the plug is OFF, the single hold calls plugOn (restore) — not off, not cycle', async () => {
     vi.useFakeTimers()
-    mockOff.mockResolvedValue({ command: 'power_off', accepted: true })
-    const { unmount } = render(
-      <PowerZone plugId="plug_litterrobot" plug={plug()} autoExpand />,
-    )
-    await hold(screen.getByRole('button', { name: 'Hold to switch plug OFF' }))
-    expect(mockOff).toHaveBeenCalledWith('plug_litterrobot')
-    unmount()
-
     mockOn.mockResolvedValue({ command: 'power_on', accepted: true })
     render(
       <PowerZone
@@ -123,6 +118,8 @@ describe('PowerZone', () => {
     )
     await hold(screen.getByRole('button', { name: 'Hold to switch plug ON' }))
     expect(mockOn).toHaveBeenCalledWith('plug_litterrobot')
+    expect(mockOff).not.toHaveBeenCalled()
+    expect(mockCycle).not.toHaveBeenCalled()
   })
 
   it('surfaces command failures (e.g. the 409 busy detail) as an error notice', async () => {
@@ -132,7 +129,7 @@ describe('PowerZone', () => {
     )
     render(<PowerZone plugId="plug_litterrobot" plug={plug()} autoExpand />)
 
-    await hold(screen.getByRole('button', { name: 'Hold to power-cycle' }))
+    await hold(screen.getByRole('button', { name: 'Hold to restart' }))
 
     expect(
       screen.getByText(/Failed: a power command is already running/),
@@ -143,7 +140,7 @@ describe('PowerZone', () => {
     render(<PowerZone plugId="plug_litterrobot" plug={plug(null)} autoExpand />)
     expect(screen.getByText('plug unreachable')).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Hold to power-cycle' }),
+      screen.getByRole('button', { name: 'Hold to restart' }),
     ).toBeDisabled()
   })
 })

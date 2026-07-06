@@ -186,7 +186,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   entry={devices['litterrobot']}
                   plug={devices['plug_litterrobot']}
                 />
-                <FeederCard entry={devices['feeder']} />
+                <FeederCard
+                  entry={devices['feeder']}
+                  plug={devices['plug_feeder']}
+                />
               </>
             )
           ) : (

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { fmtCountdown, fmtDayTime, fmtTime } from '../format'
-import type { DeviceEntry, EventOut, FeederAttrs } from '../types'
+import type { DeviceEntry, EventOut, FeederAttrs, PlugAttrs } from '../types'
 import ConfirmButton from './ConfirmButton'
 import HealthBadge from './HealthBadge'
+import PowerZone from './PowerZone'
 import TickNumber from './TickNumber'
 
 // UI cap only — the backend allows up to 48, but 12 portions is already a
@@ -57,7 +58,13 @@ function FeedTimeline({ feeds }: { feeds: { ts: string; portions: number }[] }) 
   )
 }
 
-export default function FeederCard({ entry }: { entry?: DeviceEntry }) {
+export default function FeederCard({
+  entry,
+  plug,
+}: {
+  entry?: DeviceEntry
+  plug?: DeviceEntry
+}) {
   const attrs = entry?.state?.attributes as FeederAttrs | undefined
   const todayCount = attrs?.today_feed_count
   const [portions, setPortions] = useState(1)
@@ -92,6 +99,10 @@ export default function FeederCard({ entry }: { entry?: DeviceEntry }) {
     // already-rendered value (e.g. midnight reset then first feed)
   }, [entry != null, todayCount, attrs?.today_portions])
 
+  const plugAttrs = plug?.state?.attributes as PlugAttrs | undefined
+  const plugIsOff = plugAttrs?.power_on === false
+  const offlineBecausePlug = attrs?.online === false && plugIsOff
+
   if (!entry) {
     return (
       <section className="card">
@@ -99,6 +110,7 @@ export default function FeederCard({ entry }: { entry?: DeviceEntry }) {
           <h2>Feeder</h2>
         </div>
         <p className="muted">Not configured — set PETLIBRO_* in .env</p>
+        <PowerZone plugId="plug_feeder" plug={plug} />
       </section>
     )
   }
@@ -234,6 +246,17 @@ export default function FeederCard({ entry }: { entry?: DeviceEntry }) {
           No data — {entry.health.detail || 'adapter disconnected'}
         </p>
       )}
+
+      <PowerZone
+        plugId="plug_feeder"
+        plug={plug}
+        autoExpand={offlineBecausePlug}
+        hint={
+          offlineBecausePlug
+            ? 'Plug is off — that’s why the feeder is offline.'
+            : undefined
+        }
+      />
     </section>
   )
 }
