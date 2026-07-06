@@ -190,17 +190,22 @@ deliberately deferred until the owner approves the look.*
 
 **Accept:** a stuck LR4 can be power-cycled from the phone with recovery visible in the app; owner likes the new look on their phone.
 
-### M5.7 — Insights Dashboard (est. 10–16h) — spec: `docs/06-DASHBOARD-SPEC.md`
-A third tab beyond Home (control) and Diary (log): an at-a-glance, delightful
-overview that turns Cat HQ's existing event log into wellbeing insights and a
-daily story of Pinsu — built entirely on data we already have (weight,
-litter visits/frequency, feeds, cycles, device health) with ZERO new runtime
-deps (hand-rolled SVG + CSS), midnight-den styled, cat-friendly voice.
-- [ ] New "Dashboard" tab + route; data hooks over `GET /events` (with any
-      small additive aggregation endpoint the spec calls for, e.g. `/insights`)
-- [ ] Hero + insight sections per `docs/06` (e.g. daily recap, weight & visit
-      trends, activity heatmap/streaks, glanceable vitals) — hand-rolled viz
-- [ ] Delight/personality per spec (kept tasteful; power/safety stays plain)
+### M5.7 — Insights Dashboard: "The Den" 🌙 (est. 10–16h) — spec: `docs/06-DASHBOARD-SPEC.md`
+A third tab (🌙 Den) beyond 🏠 Home (control) and 🐾 Diary (log): a midnight-den
+bento wellbeing overview that turns Cat HQ's existing event log into at-a-glance
+insights and a daily story of Pinsu — built entirely on data we already have
+(weight, litter visits/frequency, feeds, cycles, device health) with ZERO new
+runtime deps (hand-rolled SVG + CSS), cat-friendly voice (plain for power/
+safety). Recommended shape: a "Pinsu, right now" hero with Apple-Fitness goal
+rings, a 2×2 vitals KPI wall, an un-paywalled weight-watch trend, a litter
+rhythm heatmap, a scheduled-vs-actual mealtime timeline, and a Wrapped-style
+daily recap — MUST sections (hero + vitals + weight) ship a useful v1 alone.
+- [ ] New 🌙 Den tab + route; data hooks over `GET /events` (with any small
+      additive aggregation endpoint the spec flags, e.g. `/insights`)
+- [ ] Hero + insight sections per `docs/06` (must/should/could) — hand-rolled
+      viz (new `GoalRing`, extended `Sparkline`, heatmap, `PixelCat` moods)
+- [ ] Health discipline per spec: LA-timezone bucketing, weight noise
+      smoothing, inverted health color, cold-start honesty; delight rationed
 - [ ] Tests land with the code (docs/04 rule 4); smoke extended read-only;
       screenshots for owner approval before the live rebuild
 
