@@ -435,26 +435,60 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── login ── */
+/* ── login ── full-bleed Pinsu photo, card floated at the bottom ── */
 
 .login {
+  position: relative;
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* card sits at the bottom, Pinsu fills above */
+  align-items: center;
   padding: 24px;
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.login-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 32% 38%; /* keep Pinsu's face in frame after cover-crop */
+  image-orientation: from-image;
+  z-index: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.login-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  /* readable card/text at the bottom, Pinsu visible up top */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 20%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 42%, transparent) 45%,
+    color-mix(in srgb, var(--bg) 88%, transparent) 100%
+  );
 }
 
 .login-card {
+  position: relative;
+  z-index: 2;
   width: 100%;
   max-width: 340px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
   border-radius: var(--radius);
-  padding: 28px 24px;
+  padding: 24px 22px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 .login-icon {
   font-size: 48px;

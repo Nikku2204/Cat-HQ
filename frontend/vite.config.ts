@@ -34,9 +34,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // add jpg to the default precache set so Pinsu's photo (login + ring)
-        // is available on the offline shell too
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,jpg}'],
+        // photos (login background, ring) are NOT precached — they'd blow the
+        // ~300 KB budget and the app needs the backend online anyway, so they
+        // load on demand (instant on the LAN) and browser-cache after first use
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [
           /^\/devices/,
