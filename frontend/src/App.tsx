@@ -9,6 +9,7 @@ import HealthBadge from './components/HealthBadge'
 import HistoryView, { type FilterKey } from './components/HistoryView'
 import LitterCard from './components/LitterCard'
 import Login from './components/Login'
+import MoodCard from './components/MoodCard'
 import PixelCat from './components/PixelCat'
 
 type Tab = 'status' | 'den' | 'history'
@@ -188,6 +189,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               </>
             ) : (
               <>
+                <MoodCard
+                  litter={devices['litterrobot']}
+                  feeder={devices['feeder']}
+                />
                 <LitterCard
                   entry={devices['litterrobot']}
                   plug={devices['plug_litterrobot']}

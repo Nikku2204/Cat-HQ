@@ -73,6 +73,13 @@ backend healthy, served bundle is the new index-*.js with the Den; smoke
 milestones/badges) are the next session. Built SOLO under ultracode effort
 (owner said "work solo" in the prompt — honored despite workflow
 orchestration being enabled).
+CHUTKU MOOD CARD (2026-07-06 evening, owner request): top of Home; pure
+ladder in insights.homeMood — plain fault/offline > litter grievances w/
+actions > just-ate celebration (hearts, motion-gated, instant via live
+feed-count bump) > pre-meal "scam" warning (≤35m) > approval > neutral.
+NAMING: the owner calls the cat "Chutku" (he/him) in this request; the
+rest of the app says Pinsu (her). Mood card says Chutku; ASK before
+unifying names/pronouns app-wide.
 COZY-ROSE RETHEME (2026-07-06 evening, owner request "women friendly and
 cuter"): the app-wide palette lives in styles.css `:root` — plum darks,
 rose accent, lavender/mint/apricot, --on-accent for text-on-rose; --bad is

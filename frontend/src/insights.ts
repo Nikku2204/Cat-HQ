@@ -565,6 +565,181 @@ export function ambientForHour(laHourNow: number): Ambient {
   return { phase: 'night', celestial: 'moon' }
 }
 
+// ── Chutku's homepage mood (owner request 2026-07-06) ─────────────────────
+// One quirky, glanceable mood at the top of Home, ranked by "does the human
+// need to do something?": faults/offline plain first (never cute), then
+// litter grievances (actionable), then the food comedy (just-ate euphoria
+// beats pre-meal scheming — a full belly can't beg convincingly), then
+// contentment. Voice: playful for litter/food, plain for faults (docs/06).
+
+export type HomePose = 'awake' | 'sleepy' | 'alert' | 'happy' | 'grumpy'
+
+export interface HomeMoodResult {
+  kind:
+    | 'fault'
+    | 'offline'
+    | 'litterGrump'
+    | 'drawerFull'
+    | 'litterLow'
+    | 'staleBox'
+    | 'fed'
+    | 'scheming'
+    | 'happy'
+    | 'neutral'
+  pose: HomePose
+  /** the post-snack celebration (bounce + hearts) — fed only */
+  animate: boolean
+  title: string
+  sub: string | null
+}
+
+export interface HomeMoodLitter {
+  online: boolean
+  fault: boolean
+  litterPct: number | null
+  drawerFull: boolean
+}
+
+export interface HomeMoodFeeder {
+  online: boolean
+  nextFeedUtc: string | null
+}
+
+const ATE_RECENT_MS = 25 * 60_000 // "just ate" (covers the ~10-min ingest lag)
+const MEAL_SOON_MS = 35 * 60_000 // the pre-meal begging window ("~30 mins")
+const STALE_CYCLE_MS = 24 * 3_600_000 // matches the M8 absence-rule threshold
+const LITTER_LOW_PCT = 30 // matches the litter card's warn threshold
+
+export function homeMood(opts: {
+  now: TimeInput
+  litter?: HomeMoodLitter | null
+  feeder?: HomeMoodFeeder | null
+  /** newest feed event instant; null/undefined = unknown (never assume) */
+  lastFeedMs?: number | null
+  /** newest clean-cycle instant; null/undefined = unknown (never grump on unknown) */
+  lastCycleMs?: number | null
+}): HomeMoodResult {
+  const nowMs = toMs(opts.now)
+  const { litter, feeder } = opts
+
+  // 1. Fault — plain and factual, the card below has the details.
+  if (litter?.fault) {
+    return {
+      kind: 'fault',
+      pose: 'awake',
+      animate: false,
+      title: "The litter box hit a snag — Chutku's waiting on a fix.",
+      sub: 'Check the Litter Box card below.',
+    }
+  }
+
+  // 2. Offline — plain, never a sad cat (docs/06 non-guilt guardrail).
+  const offline: string[] = []
+  if (litter && !litter.online) offline.push('the litter box')
+  if (feeder && !feeder.online) offline.push('the feeder')
+  if (offline.length) {
+    return {
+      kind: 'offline',
+      pose: 'awake',
+      animate: false,
+      title: `Can't check on Chutku right now — ${offline.join(' and ')} ${
+        offline.length > 1 ? 'are' : 'is'
+      } offline.`,
+      sub: 'Have a look at the cards below.',
+    }
+  }
+
+  // 3-6. Litter grievances (actionable — they outrank the food comedy).
+  const sinceCycle = opts.lastCycleMs != null ? nowMs - opts.lastCycleMs : null
+  const stale = sinceCycle != null && sinceCycle > STALE_CYCLE_MS
+  const low = litter?.litterPct != null && litter.litterPct < LITTER_LOW_PCT
+  const staleH = sinceCycle != null ? Math.round(sinceCycle / 3_600_000) : 0
+
+  if (stale && low) {
+    return {
+      kind: 'litterGrump',
+      pose: 'grumpy',
+      animate: false,
+      title: `Chutku is UNIMPRESSED — no scoop in ${staleH}h and the sand is low.`,
+      sub: 'Top up the litter, then tap Scoop now below.',
+    }
+  }
+  if (litter?.drawerFull) {
+    return {
+      kind: 'drawerFull',
+      pose: 'grumpy',
+      animate: false,
+      title: 'The drawer is full and Chutku has opinions about it.',
+      sub: 'Empty the waste drawer when you can.',
+    }
+  }
+  if (low) {
+    return {
+      kind: 'litterLow',
+      pose: 'grumpy',
+      animate: false,
+      title: `Sand check: ${Math.round(litter!.litterPct!)}% — Chutku likes it deeper than that.`,
+      sub: 'Top up the litter soon.',
+    }
+  }
+  if (stale) {
+    return {
+      kind: 'staleBox',
+      pose: 'grumpy',
+      animate: false,
+      title: `No scoop in ${staleH}h — the box might need a nudge.`,
+      sub: 'A quick Scoop now below should do it.',
+    }
+  }
+
+  // 7. Just ate — the happiest boy alive (the celebration animation).
+  const sinceFeed = opts.lastFeedMs != null ? nowMs - opts.lastFeedMs : null
+  if (sinceFeed != null && sinceFeed >= 0 && sinceFeed <= ATE_RECENT_MS) {
+    return {
+      kind: 'fed',
+      pose: 'happy',
+      animate: true,
+      title: 'Chutku just ate — currently the happiest boy alive! 😋',
+      sub: 'Nothing needed. Brace for post-snack zoomies.',
+    }
+  }
+
+  // 8. Meal soon — the great pre-dinner starvation act.
+  const untilFeed = feeder?.nextFeedUtc ? toMs(feeder.nextFeedUtc) - nowMs : NaN
+  if (Number.isFinite(untilFeed) && untilFeed > 0 && untilFeed <= MEAL_SOON_MS) {
+    const mins = Math.max(1, Math.round(untilFeed / 60_000))
+    return {
+      kind: 'scheming',
+      pose: 'alert',
+      animate: false,
+      title: `Chutku is acting starving — the bowl opens in ${mins}m. It's a scam. 🍽️`,
+      sub: "Don't fall for the eyes. The machine has it covered.",
+    }
+  }
+
+  // 9. Facilities in good order — royal approval.
+  const fresh = sinceCycle != null && sinceCycle <= STALE_CYCLE_MS
+  const plenty = litter?.litterPct != null && litter.litterPct >= LITTER_LOW_PCT
+  if (fresh && plenty && !litter?.drawerFull) {
+    return {
+      kind: 'happy',
+      pose: 'happy',
+      animate: false,
+      title: 'Fresh box, plenty of sand, snacks on schedule — Chutku approves. ✨',
+      sub: null,
+    }
+  }
+
+  // 10. Nothing notable (or not enough known yet) — never guess.
+  return {
+    kind: 'neutral',
+    pose: 'awake',
+    animate: false,
+    title: 'Chutku is off somewhere warm, plotting his next snack. 😌',
+    sub: null,
+  }
+}
+
 // ── event helpers shared by the data hook ────────────────────────────────
 
 const LR_FAULTS = new Set(['CSF', 'PD', 'OTF', 'BR'])

@@ -50,13 +50,45 @@ const ALERT = [
   '.1111111111.',
 ]
 
-const GRID: Record<'awake' | 'sleepy' | 'alert', string[]> = {
+// happy squint (^-^) + a big accent smile — post-snack euphoria
+const HAPPY = [
+  '1..........1',
+  '11........11',
+  '121......121',
+  '111111111111',
+  '111111111111',
+  '121111111211',
+  '111111111111',
+  '112111111211',
+  '112222222211',
+  '.1111111111.',
+]
+
+// ears lowered, heavy accent brows over narrowed eyes, a tiny frown
+const GRUMPY = [
+  '............',
+  '11........11',
+  '121......121',
+  '111111111111',
+  '121111111211',
+  '131111111311',
+  '111111111111',
+  '112111111211',
+  '111112211111',
+  '.1111111111.',
+]
+
+export type Pose = 'awake' | 'sleepy' | 'alert' | 'happy' | 'grumpy'
+
+const GRID: Record<Pose, string[]> = {
   awake: AWAKE,
   sleepy: SLEEPY,
   alert: ALERT,
+  happy: HAPPY,
+  grumpy: GRUMPY,
 }
 
-function poseFor(mood: Mood | undefined): 'awake' | 'sleepy' | 'alert' {
+function poseFor(mood: Mood | undefined): Pose {
   if (mood === 'sleepy') return 'sleepy'
   if (mood === 'justVisited' || mood === 'restless') return 'alert'
   return 'awake'
@@ -65,11 +97,14 @@ function poseFor(mood: Mood | undefined): 'awake' | 'sleepy' | 'alert' {
 export default function PixelCat({
   size = 22,
   mood,
+  pose: poseProp,
 }: {
   size?: number
   mood?: Mood
+  /** explicit pose wins over the mood mapping (Home mood card) */
+  pose?: Pose
 }) {
-  const pose = poseFor(mood)
+  const pose = poseProp ?? poseFor(mood)
   const grid = GRID[pose]
   const cells: { x: number; y: number; k: string }[] = []
   grid.forEach((row, y) => {

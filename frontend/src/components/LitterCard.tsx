@@ -18,7 +18,7 @@ import Ring, { type RingMode } from './Ring'
 import Sparkline from './Sparkline'
 import Tube from './Tube'
 
-function isCleanCycleEvent(e: EventOut): boolean {
+export function isCleanCycleEvent(e: EventOut): boolean {
   return (
     (e.event_type === 'activity' &&
       /clean cycle complete/i.test(String(e.data['action'] ?? ''))) ||

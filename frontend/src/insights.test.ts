@@ -6,6 +6,7 @@ import {
   dailyCounts,
   dayCells,
   filterWeightSeries,
+  homeMood,
   laDayKey,
   laDayKeysBack,
   laDayStartMs,
@@ -441,6 +442,129 @@ describe('mood + ambient', () => {
     expect(ambientForHour(13)).toEqual({ phase: 'day', celestial: 'sun' })
     expect(ambientForHour(19)).toEqual({ phase: 'dusk', celestial: 'sun' })
     expect(ambientForHour(23)).toEqual({ phase: 'night', celestial: 'moon' })
+  })
+})
+
+describe("homeMood — Chutku's homepage mood ladder", () => {
+  const NOW = new Date('2026-07-06T20:00:00Z').getTime()
+  const MIN = 60_000
+  const HOUR = 3_600_000
+  const goodLitter = {
+    online: true,
+    fault: false,
+    litterPct: 90,
+    drawerFull: false,
+  }
+  const goodFeeder = { online: true, nextFeedUtc: null }
+  const base = {
+    now: NOW,
+    litter: goodLitter,
+    feeder: goodFeeder,
+    lastFeedMs: NOW - 5 * HOUR,
+    lastCycleMs: NOW - 2 * HOUR,
+  }
+
+  it('just ate → the happiest boy alive, with the celebration', () => {
+    const m = homeMood({ ...base, lastFeedMs: NOW - 10 * MIN })
+    expect(m.kind).toBe('fed')
+    expect(m.pose).toBe('happy')
+    expect(m.animate).toBe(true)
+  })
+
+  it('meal within ~30m → the pre-dinner starvation scam', () => {
+    const m = homeMood({
+      ...base,
+      feeder: { online: true, nextFeedUtc: new Date(NOW + 20 * MIN).toISOString() },
+    })
+    expect(m.kind).toBe('scheming')
+    expect(m.pose).toBe('alert')
+    expect(m.title).toContain('20m')
+    expect(m.animate).toBe(false)
+  })
+
+  it('just ate BEATS meal-soon (a full belly cannot beg convincingly)', () => {
+    const m = homeMood({
+      ...base,
+      lastFeedMs: NOW - 5 * MIN,
+      feeder: { online: true, nextFeedUtc: new Date(NOW + 25 * MIN).toISOString() },
+    })
+    expect(m.kind).toBe('fed')
+  })
+
+  it('meal >35m away is not yet scam o’clock', () => {
+    const m = homeMood({
+      ...base,
+      feeder: { online: true, nextFeedUtc: new Date(NOW + 90 * MIN).toISOString() },
+    })
+    expect(m.kind).toBe('happy')
+  })
+
+  it('clean box + recent scoop + plenty of sand → royal approval', () => {
+    expect(homeMood(base).kind).toBe('happy')
+  })
+
+  it('no scoop in 24h AND low sand → UNIMPRESSED, with both actions', () => {
+    const m = homeMood({
+      ...base,
+      litter: { ...goodLitter, litterPct: 15 },
+      lastCycleMs: NOW - 30 * HOUR,
+    })
+    expect(m.kind).toBe('litterGrump')
+    expect(m.pose).toBe('grumpy')
+    expect(m.title).toContain('30h')
+    expect(m.sub).toMatch(/litter.*Scoop/i)
+  })
+
+  it('litter grievances OUTRANK the just-ate joy (action first)', () => {
+    const m = homeMood({
+      ...base,
+      lastFeedMs: NOW - 5 * MIN,
+      litter: { ...goodLitter, litterPct: 10 },
+    })
+    expect(m.kind).toBe('litterLow')
+    expect(m.title).toContain('10%')
+  })
+
+  it('a full drawer earns grumpy opinions', () => {
+    const m = homeMood({ ...base, litter: { ...goodLitter, drawerFull: true } })
+    expect(m.kind).toBe('drawerFull')
+    expect(m.pose).toBe('grumpy')
+  })
+
+  it('stale box alone → a nudge toward Scoop now', () => {
+    const m = homeMood({ ...base, lastCycleMs: NOW - 26 * HOUR })
+    expect(m.kind).toBe('staleBox')
+    expect(m.sub).toContain('Scoop now')
+  })
+
+  it('a fault stays PLAIN and points at the card — never cute', () => {
+    const m = homeMood({ ...base, litter: { ...goodLitter, fault: true } })
+    expect(m.kind).toBe('fault')
+    expect(m.pose).toBe('awake')
+    expect(m.animate).toBe(false)
+  })
+
+  it('offline devices are reported plainly, never a sad cat', () => {
+    const m = homeMood({
+      ...base,
+      litter: { ...goodLitter, online: false },
+      feeder: { ...goodFeeder, online: false },
+    })
+    expect(m.kind).toBe('offline')
+    expect(m.title).toContain('litter box')
+    expect(m.title).toContain('feeder')
+    expect(m.pose).toBe('awake')
+  })
+
+  it('unknown history never grumps — cold start lands neutral', () => {
+    const m = homeMood({
+      now: NOW,
+      litter: { online: true, fault: false, litterPct: null, drawerFull: false },
+      feeder: goodFeeder,
+      lastFeedMs: null,
+      lastCycleMs: null,
+    })
+    expect(m.kind).toBe('neutral')
   })
 })
 

@@ -70,7 +70,14 @@ const check = (ok, name) => {
   check(true, 'websocket connected (avatar ring = live)')
   const cards = page.locator('.card:not(.skeleton)')
   await page.waitForSelector('.ring', { timeout: 10000 })
-  check((await cards.count()) === 2, 'two device cards render')
+  check((await cards.count()) === 3, 'mood + two device cards render')
+
+  // Chutku's mood card (M5.7 follow-on) — read-only, top of Home
+  const moodTitle = await page.locator('.mood-title').textContent()
+  check(
+    (moodTitle ?? '').includes('Chutku'),
+    `mood card speaks ("${(moodTitle ?? '').slice(0, 60)}…")`,
+  )
 
   // litter card v2: status ring + drawer gauge + litter tube + presence
   const ringMode = await page.locator('.ring').getAttribute('data-mode')
