@@ -1,50 +1,86 @@
-/* Cat HQ — "marmalade den" (owner request 2026-07-06: orange-cat themed,
- * playful — Chutku IS an orange tabby, so the app wears his fur colors:
- * espresso darks, cream text, a marmalade accent).
- * Dark, mobile-first. One phone, one household, no theme switcher.
- * Hand-rolled SVG + CSS only — zero runtime deps by design.
+/* Cat HQ — "warm cream den" (owner request 2026-07-06: white-cream + soft
+ * peach + cozy browns, warm charcoal text, playful fonts). A LIGHT theme:
+ * cream walls, soft-peach cards/highlights, Chutku's marmalade as the accent.
+ * Mobile-first. One phone, one household, no theme switcher.
+ * Hand-rolled SVG + CSS only — zero runtime deps by design. Fonts are
+ * SELF-HOSTED woff2 (Fredoka display / Nunito body, OFL — public/fonts/),
+ * excluded from the precache like the photos so the <300 KB budget holds;
+ * the rounded system stack is the graceful fallback.
  *
  * Color rules survive every retheme: --ok/--warn/--bad keep their semantic
- * jobs; --warn is YELLOW here (never orange — it must not blend into the
- * accent), and --bad stays UNMISTAKABLY red (mains power zone must never
- * read cute — docs/05 safety). Everything rides these vars, so this block
- * IS the theme. */
+ * jobs (deepened here for contrast on light surfaces); --warn is AMBER
+ * (never orange — it must not blend into the accent), and --bad stays
+ * UNMISTAKABLY red (mains power zone must never read cute — docs/05).
+ * Everything rides these vars, so this block IS the theme. */
+
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/fredoka-latin.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/nunito-latin.woff2') format('woff2');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  --bg: #1b120c; /* warm espresso */
-  --card: #271a11;
-  --card-2: #342314;
-  --line: #46311d;
-  --text: #f9f1e4; /* cream */
-  --muted: #c4a687; /* latte */
-  --accent: #ff9e42; /* marmalade — Chutku's fur */
-  --on-accent: #33190a; /* text on the marmalade accent */
-  --ok: #7fdca6; /* soft green (his eye color) */
-  --warn: #ffd66b; /* sunny yellow — deliberately NOT orange */
-  --bad: #f2606a; /* clear red — distinct from the accent on purpose */
-  --info: #7db5f0; /* sky blue — playful complement to orange */
+  --bg: #fbf6ee; /* warm cream */
+  --card: #ffeedd; /* soft peach */
+  --card-2: #ffe3cb; /* deeper peach (inset surfaces) */
+  --line: #eed7bf; /* peach border */
+  --text: #40332b; /* warm charcoal */
+  --muted: #7d685a; /* warm taupe */
+  --accent: #e8792f; /* burnt marmalade — Chutku's fur, deepened for light */
+  --on-accent: #33200f; /* text on the accent */
+  --ok: #23855a; /* deep soft green (his eye color, readable on peach) */
+  --warn: #b07405; /* amber — deliberately NOT orange */
+  --bad: #cf3f4e; /* clear red — distinct from the accent on purpose */
+  --info: #4a7fd4; /* cornflower blue */
   --radius: 20px;
+  --font-display: 'Fredoka', ui-rounded, -apple-system, sans-serif;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: light;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
-  /* den depth: a faint lamp-lit pool at the top, fading into the dark */
+  /* den warmth: a soft peach pool of light at the top, fading into cream */
   background:
-    radial-gradient(120% 60% at 50% -12%, #2f1d10 0%, var(--bg) 60%) fixed,
+    radial-gradient(120% 60% at 50% -12%, #ffe7d2 0%, var(--bg) 60%) fixed,
     var(--bg);
   color: var(--text);
-  /* ui-rounded → SF Rounded on the owner's iPhone: instantly softer, free */
   font-family:
-    ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', sans-serif;
+    'Nunito', ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* playful display face for names, headings, and the big numbers */
+h1,
+h2,
+h3,
+.status-big,
+.den-name,
+.den-tval,
+.den-weight-now b,
+.mood-title,
+.login-card h1 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
 }
 
 button {
@@ -160,7 +196,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 22px rgba(150, 100, 55, 0.14);
 }
 
 .card-head {
@@ -474,12 +510,14 @@ button {
   position: fixed;
   inset: 0;
   z-index: 1;
-  /* readable card/text at the bottom, Chutku visible up top */
+  /* readable card/text at the bottom, Chutku VIVID up top — on the light
+     theme a heavy cream wash bleaches the whole photo, so the scrim only
+     really kicks in near the card */
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--bg) 20%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 42%, transparent) 45%,
-    color-mix(in srgb, var(--bg) 88%, transparent) 100%
+    color-mix(in srgb, var(--bg) 3%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 16%, transparent) 55%,
+    color-mix(in srgb, var(--bg) 82%, transparent) 100%
   );
 }
 
@@ -498,7 +536,7 @@ button {
   flex-direction: column;
   gap: 12px;
   text-align: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 16px 40px rgba(110, 70, 35, 0.3);
 }
 .login-icon {
   font-size: 48px;
@@ -617,7 +655,7 @@ button {
 }
 .sk {
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--card-2) 25%, #3d2a17 37%, var(--card-2) 63%);
+  background: linear-gradient(90deg, var(--card-2) 25%, #f6e4cf 37%, var(--card-2) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }
@@ -676,7 +714,7 @@ button {
   font-size: 14px;
   font-weight: 600;
   z-index: 20;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 20px rgba(150, 100, 55, 0.22);
   animation: toast-in 0.25s ease;
 }
 @keyframes toast-in {

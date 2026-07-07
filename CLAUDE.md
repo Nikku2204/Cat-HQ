@@ -81,7 +81,18 @@ NAMING RESOLVED (2026-07-06 late): the cat is **Chutku (he/him)
 EVERYWHERE** — owner decision. All UI copy, tests, smoke, .env CAT_NAMES,
 docs/00 renamed; ChutkuAvatar.tsx (was PinsuAvatar). Only the photo asset
 FILENAMES keep pinsu*.jpg (binary churn not worth it).
-MARMALADE THEME (2026-07-06 late, owner: "orange cat themed, playful"):
+CURRENT THEME: "WARM CREAM DEN" (2026-07-06 late, owner request) — a
+LIGHT theme: cream bg #fbf6ee, SOFT-PEACH cards, warm-charcoal text,
+burnt-marmalade accent #e8792f; semantic colors deepened for light
+contrast (amber warn, clear red bad — mains never cute). FONTS are
+self-hosted OFL woff2 in public/fonts/ (Fredoka = display/headings/big
+numbers via --font-display; Nunito = body), deliberately NOT precached
+(photos rule) so the 300 KB budget holds; system rounded stack falls
+back. iOS status bar "default"; icons cream. Theme history (all
+superseded, kept for context): midnight-blue → rose-plum → marmalade-dark
+→ warm-cream-light. Retheming = edit styles.css :root + shadows +
+index.html/vite theme_color + regenerate icons (scratchpad gen-icons).
+SUPERSEDED: MARMALADE dark (owner: "orange cat themed, playful"):
 styles.css :root — espresso darks, cream text, marmalade accent #ff9e42
 (Chutku IS an orange tabby), green ok (his eyes), SUNNY-YELLOW warn
 (deliberately not orange so it can't blend into the accent), clear red

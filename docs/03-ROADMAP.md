@@ -256,6 +256,19 @@ gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; owner said
 theme-color #171019 + rose CSS/favicon confirmed served, read-only smoke
 26/26 vs the live container.*
 
+*Warm-cream LIGHT theme + real fonts 2026-07-06 late (owner request:
+white-cream/soft-peach/cozy browns, warm charcoal text, Fredoka/Nunito):
+styles.css :root flipped light — cream bg, soft-peach cards/highlights,
+warm-charcoal text, burnt-marmalade accent, semantic colors deepened for
+light-surface contrast (amber warn never orange; red stays clearly red).
+Fonts SELF-HOSTED woff2 (Fredoka display for headings/names/big numbers,
+Nunito body; OFL, public/fonts/ + LICENSE.txt), kept OUT of the precache
+like the photos (273 KiB held); rounded system stack is the fallback.
+Shadows warmed/softened, skeleton shimmer lightened, ChutkuCat gets a white
+chest + brown whiskers so he pops on peach, login scrim lightened so the
+photo stays vivid, iOS status bar → default (dark text), icons/manifest
+regenerated cream #fbf6ee. Frontend 223 tests.*
+
 *Chutku everywhere + marmalade theme + animated Chutku 2026-07-06 late
 (owner): (1) the cat is Chutku (he/him) EVERYWHERE — full UI/test/smoke/.env/
 docs rename (photo filenames keep pinsu*.jpg); (2) theme reworked orange-tabby

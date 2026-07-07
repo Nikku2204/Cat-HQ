@@ -20,10 +20,13 @@ export default function ChutkuCat({
 }) {
   const fur = 'var(--accent)'
   const stripe = 'color-mix(in srgb, var(--accent) 55%, #5b2c07)'
-  const cream = '#ffefd9'
+  // pure white chest/muzzle so he pops on the soft-peach cards (a cream
+  // tone here would vanish into --card on the light theme)
+  const cream = '#ffffff'
   const iris = 'var(--ok)'
   const dark = '#2b1608'
   const nose = '#f98a9b'
+  const whisker = '#a98868'
 
   const grumpy = pose === 'grumpy'
   const happy = pose === 'happy'
@@ -169,7 +172,7 @@ export default function ChutkuCat({
         )}
 
         {/* whiskers */}
-        <g stroke={cream} strokeWidth="1.6" strokeLinecap="round" opacity="0.8">
+        <g stroke={whisker} strokeWidth="1.5" strokeLinecap="round" opacity="0.7">
           <path d="M40 48 L22 45" />
           <path d="M40.5 52 L23.5 53.5" />
           <path d="M80 48 L98 45" />

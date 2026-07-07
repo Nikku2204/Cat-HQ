@@ -1,0 +1,8 @@
+Self-hosted webfonts (latin subsets, variable weight):
+
+- Fredoka  — Copyright 2021 The Fredoka Project Authors (https://github.com/hafontia/Fredoka-One)
+- Nunito   — Copyright 2014 The Nunito Project Authors (https://github.com/googlefonts/nunito)
+
+Both are licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org
+Files were obtained via Google Fonts (fonts.gstatic.com) on 2026-07-06.
