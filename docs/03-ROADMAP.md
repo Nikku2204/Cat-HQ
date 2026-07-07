@@ -361,6 +361,16 @@ stays). Quirk documented in docs/02. Also: Den refetches on visibilitychange
 **Accept:** full app, including video, works on cellular data.
 
 ### M8 — Push notifications (est. 10–15h)
+> **Pulled forward 2026-07-06:** WhatsApp alerts via CallMeBot shipped early
+> (backend/app/notify.py) — rules engine on the recorder's signals + event
+> log, per-rule cooldowns via the M3 notification_ledger, failed-send
+> backoff, evening care digest (19:00 local), cold-start-honest absence
+> rules (no cycle 24h / no feed 12h need that much history first), pluggable
+> send_fn (CallMeBot today; Web Push can join at M8 proper). POST
+> /notify/test (auth'd) verifies the pipe; engine only starts when both
+> CALLMEBOT_* env values are set. 16 tests, spy transport, zero new runtime
+> deps (aiohttp already present). Web Push/VAPID + configurability remain M8.
+
 - [ ] Service worker + VAPID web push (iOS requires the PWA installed to home screen)
 - [ ] Alert rules: drawer full, feeder error/low food, device offline, cycle complete (configurable)
 - [ ] Owner-requested absence rules (2026-07-05; easy via the M3 event log):

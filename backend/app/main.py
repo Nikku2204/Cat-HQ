@@ -19,11 +19,13 @@ from .adapters.govee import GoveePlugAdapter
 from .adapters.litterrobot import LitterRobotAdapter
 from .adapters.petlibro import PetlibroAdapter
 from .api import care, devices, events, ws
+from .api import notify as notify_api
 from .auth import require_auth
 from .broadcast import Hub
 from .config import get_settings
 from .db import SessionLocal, dispose_db, init_db
 from .models import Event, iso_utc_now
+from .notify import Notifier
 from .pollers import Recorder
 
 logger = logging.getLogger(__name__)
@@ -132,7 +134,18 @@ async def lifespan(app: FastAPI):
     app.state.hub = hub
     recorder = Recorder(adapters, SessionLocal)
     await recorder.start()
+    # WhatsApp alerts (M8 pulled forward): only when BOTH CallMeBot values
+    # are configured — otherwise the app runs exactly as before.
+    notifier = None
+    if settings.callmebot_phone and settings.callmebot_api_key:
+        notifier = Notifier(adapters, SessionLocal, settings)
+        await notifier.start()
+        app.state.notifier = notifier
+    else:
+        logger.info("notifier not configured (no CALLMEBOT_* in .env)")
     yield
+    if notifier is not None:
+        await notifier.stop()
     await recorder.stop()
     for adapter in adapters.values():
         await adapter.stop()
@@ -154,6 +167,7 @@ app = FastAPI(
 app.include_router(devices.router, dependencies=[Depends(require_auth)])
 app.include_router(events.router, dependencies=[Depends(require_auth)])
 app.include_router(care.router, dependencies=[Depends(require_auth)])
+app.include_router(notify_api.router, dependencies=[Depends(require_auth)])
 app.include_router(ws.router)  # WS authenticates inside the handshake
 
 # Frontend build output — present in the Docker image (multi-stage build),

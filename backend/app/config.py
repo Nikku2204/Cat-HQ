@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     tapo_cam_user: str = ""
     tapo_cam_pass: str = ""
 
+    # WhatsApp alerts via CallMeBot (M8 pulled forward, 2026-07-06).
+    # Free personal-use gateway: activate per callmebot.com, then set BOTH.
+    # Notifications are disabled unless both are non-empty.
+    callmebot_phone: str = ""      # CALLMEBOT_PHONE — incl. country code
+    callmebot_api_key: str = ""    # CALLMEBOT_API_KEY
+
     @property
     def cats(self) -> list[str]:
         return [c.strip() for c in self.cat_names.split(",") if c.strip()]
