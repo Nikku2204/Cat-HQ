@@ -262,7 +262,9 @@ beside his Petlibro, IMG_6668 → assets/food-machine.jpg, 62 KB, on-demand
 like all photos) in a status Ring: green Ready / amber Serving / red Jammed
 / grey Offline, status word beneath. ChutkuAvatar gains an alt prop; smoke
 updated (ring locators strict-mode safe + machine-ring check). Frontend 227
-tests; precache 274 KiB.*
+tests; precache 274 KiB.
+DEPLOYED 2026-07-06 late: adapters ok, machine photo serving (200, 62 KB),
+smoke 28/28 incl. the machine ring (mode=ok).*
 
 *Warm-cream LIGHT theme + real fonts 2026-07-06 late (owner request:
 white-cream/soft-peach/cozy browns, warm charcoal text, Fredoka/Nunito):
