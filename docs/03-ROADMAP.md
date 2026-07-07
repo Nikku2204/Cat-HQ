@@ -268,7 +268,9 @@ today_feed_count bump since the event log lags ~10 min) → the pre-meal
 neutral. New PixelCat poses happy/grumpy + `pose` prop. NOTE: owner calls the
 cat "Chutku" (he/him) here while the rest of the app says Pinsu (her) — mood
 card uses Chutku per the request; unify pending owner preference. Frontend
-219 tests; precache 268 KiB; smoke updated (3 cards + mood check).*
+219 tests; precache 268 KiB; smoke updated (3 cards + mood check).
+DEPLOYED 2026-07-06 evening: all four adapters ok, celebration string in the
+served bundle, read-only smoke 27/27 vs the live container.*
 
 *Accuracy pass 2026-07-06 evening (day-1 real data review): found and fixed a
 visit double-count — the Whisker cloud updates `pet_weight_lbs` LAZILY (change
