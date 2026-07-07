@@ -241,6 +241,17 @@ backend healthy + go2rtc up; read-only smoke 26/26 vs the LIVE container (it
 even caught Pinsu mid-visit: ring busy "Cat Sensor Timing", "visited 8m ago").
 MUST v1 is live on the phone. SHOULD/COULD sections are the next session.*
 
+*Accuracy pass 2026-07-06 evening (day-1 real data review): found and fixed a
+visit double-count — the Whisker cloud updates `pet_weight_lbs` LAZILY (change
+events observed landing 38s–9min after the matching "Cat Detected"), so naive
+merging inflated "visits today" (6–7 shown vs 5 real). New rule in
+`visitTimestamps`: Cat Detected is authoritative; a pet_weight only counts when
+it's >15 min newer than the newest vendor row (covers the ~10-min history-ingest
+lag — one live visit's Cat Detected was still missing 3h later, so the fallback
+stays). Quirk documented in docs/02. Also: Den refetches on visibilitychange
+(overnight-PWA staleness) and small copy/UI polish on the visits tile. Frontend
+196 tests; precache 261 KiB.*
+
 ### M6 — Live video (est. 12–20h)
 - [ ] Tapo third-party compatibility + camera account done; RTSP verified in VLC
 - [ ] go2rtc configured; WebRTC player in the PWA; snapshot endpoint

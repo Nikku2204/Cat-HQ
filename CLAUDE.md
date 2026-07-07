@@ -73,6 +73,12 @@ backend healthy, served bundle is the new index-*.js with the Den; smoke
 milestones/badges) are the next session. Built SOLO under ultracode effort
 (owner said "work solo" in the prompt — honored despite workflow
 orchestration being enabled).
+Day-1 accuracy pass (2026-07-06 evening): LR4 QUIRK — the cloud updates
+pet_weight_lbs LAZILY (38s–9min+ after the visit; docs/02), which
+double-counted visits. visitTimestamps now treats "Cat Detected" as
+authoritative; pet_weight counts only >15 min past the newest vendor row
+(ingest-lag cover — needed: one visit's Cat Detected was still missing 3h
+later). Plus visibilitychange refetch in useInsights. Frontend 196 tests.
 
 ## Current state (2026-07-05, late evening — M0–M5.5 ALL ACCEPTED ✅)
 PWA installed on the owner's phone, live on LAN, phone-triggered clean

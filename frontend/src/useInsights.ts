@@ -110,6 +110,18 @@ export function useInsights(devices: Devices, nowMs: number): DenModel {
   const nowMsRef = useRef(nowMs)
   nowMsRef.current = nowMs
 
+  // iOS suspends the PWA in the background; on return the event log may have
+  // moved even if no live attribute did (e.g. overnight visits already
+  // ingested before the tab woke). Refetch on visibility, like useLive does.
+  const [visRefresh, setVisRefresh] = useState(0)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setVisRefresh((k) => k + 1)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
+
   useEffect(() => {
     if (!hasDevices) return
     let stale = false
@@ -141,7 +153,7 @@ export function useInsights(devices: Devices, nowMs: number): DenModel {
       stale = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasDevices, cycleCount, petWeight, feedCount])
+  }, [hasDevices, cycleCount, petWeight, feedCount, visRefresh])
 
   return useMemo<DenModel>(() => {
     const litterEvents = {

@@ -140,30 +140,48 @@ export function rollingMedian(vals: number[], w = 7): number[] {
 }
 
 // ── litter visits ────────────────────────────────────────────────────────
-// A "visit" = the cat used the box. Two honest signals: every pet_weight
-// event IS a weigh-in visit (the LR4 scale fires when she steps in), and
-// "Cat Detected" activity rows cover visits the scale didn't log. One physical
-// visit can raise both, seconds apart — so we merge and collapse anything
-// within COLLAPSE_MS into a single visit (matches LitterCard's convention).
+// A "visit" = the cat used the box. The vendor's "Cat Detected" activity rows
+// are the AUTHORITATIVE record (real event timestamps from the LR4 itself).
+// pet_weight poll events are NOT reliable visit instants: the Whisker cloud
+// updates pet_weight_lbs lazily, so the recorder's change event can land
+// minutes after the physical visit (observed live 2026-07-06: 38s, 75s, 123s
+// and 9 min after the matching Cat Detected — naively merging both streams
+// double-counted visits). pet_weight only covers the history-ingest lag
+// (~10 min): a weigh-in NEWER than the newest Cat Detected row is a visit the
+// vendor record hasn't caught up to yet; once ingest catches up, the vendor
+// row takes over. (pet_weight values stay the weight-series source — the
+// VALUES are good, it's the timestamps that lag.)
 
 const COLLAPSE_MS = 120_000
+// A pet_weight event less than this much newer than the newest Cat Detected
+// is treated as that visit's lagged weight update, not a new visit (observed
+// cloud lag up to ~9 min; grace comfortably past it). A genuinely new visit
+// during the ingest gap sits HOURS past the previous vendor row, so it still
+// counts immediately — keeping "just popped by" real-time.
+const WEIGHT_LAG_GRACE_MS = 15 * 60_000
 
 function isCatDetected(e: EventOut): boolean {
   return /cat detected/i.test(String(e.data?.['action'] ?? ''))
 }
 
-/** Merge pet_weight + "Cat Detected" activity into de-duplicated visit
- *  instants (epoch-ms, ascending). */
+/** De-duplicated visit instants (epoch-ms, ascending): all "Cat Detected"
+ *  rows + only pet_weight events beyond the lag grace past the newest one
+ *  (ingest-lag cover); anything within COLLAPSE_MS collapses into one visit. */
 export function visitTimestamps(
   petWeightEvents: EventOut[],
   activityEvents: EventOut[],
 ): number[] {
-  const times = [
-    ...petWeightEvents.map((e) => toMs(e.ts_utc)),
-    ...activityEvents.filter(isCatDetected).map((e) => toMs(e.ts_utc)),
-  ]
+  const detected = activityEvents
+    .filter(isCatDetected)
+    .map((e) => toMs(e.ts_utc))
     .filter((t) => Number.isFinite(t))
-    .sort((a, b) => a - b)
+  const newestDetected = detected.length ? Math.max(...detected) : -Infinity
+  const freshWeighIns = petWeightEvents
+    .map((e) => toMs(e.ts_utc))
+    .filter(
+      (t) => Number.isFinite(t) && t > newestDetected + WEIGHT_LAG_GRACE_MS,
+    )
+  const times = [...detected, ...freshWeighIns].sort((a, b) => a - b)
   const out: number[] = []
   for (const t of times) {
     if (out.length && t - out[out.length - 1] <= COLLAPSE_MS) continue

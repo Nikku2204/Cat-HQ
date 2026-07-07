@@ -1361,9 +1361,6 @@ button {
   border-radius: 4px;
   transition: width 0.6s ease;
 }
-.den-minifill-empty {
-  opacity: 0.5;
-}
 .den-streak {
   display: flex;
   gap: 3px;

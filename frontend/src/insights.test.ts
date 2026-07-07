@@ -102,22 +102,56 @@ describe('numeric helpers', () => {
 })
 
 describe('litter visits', () => {
-  it('merges pet_weight + Cat Detected and collapses near-duplicates', () => {
+  it('Cat Detected is authoritative; a LAGGED pet_weight never double-counts', () => {
+    // Regression from live data 2026-07-06: the Whisker cloud updates
+    // pet_weight_lbs lazily — the poll event landed 9 MINUTES after the
+    // matching Cat Detected. It must NOT count as a second visit.
+    const weights = [ev('pet_weight', '2026-07-06T02:35:01Z', { to: 12.79 })]
+    const activity = [
+      ev('activity', '2026-07-06T02:25:59Z', { action: 'Cat Detected' }),
+      // non-visit activity is ignored
+      ev('activity', '2026-07-06T02:40:00Z', { action: 'Clean Cycle Complete' }),
+    ]
+    expect(visitTimestamps(weights, activity)).toHaveLength(1)
+  })
+
+  it('a pet_weight NEWER than every Cat Detected counts (ingest-lag cover)', () => {
+    // History ingest runs ~10-min behind; the freshest visit shows up as a
+    // pet_weight change first. It counts until the vendor row lands.
+    const weights = [ev('pet_weight', '2026-07-07T02:21:00Z', { to: 12.96 })]
+    const activity = [
+      ev('activity', '2026-07-06T23:46:27Z', { action: 'Cat Detected' }),
+    ]
+    const visits = visitTimestamps(weights, activity)
+    expect(visits).toHaveLength(2)
+    expect(visits).toEqual([...visits].sort((a, b) => a - b))
+  })
+
+  it('a pet_weight seconds after its Cat Detected never counts twice', () => {
+    const weights = [ev('pet_weight', '2026-07-06T18:01:00Z', { to: 13.2 })]
+    const activity = [
+      ev('activity', '2026-07-06T18:00:30Z', { action: 'Cat Detected' }),
+    ]
+    expect(visitTimestamps(weights, activity)).toHaveLength(1)
+  })
+
+  it('a quick real revisit still counts once its own Cat Detected lands', () => {
+    // Visit A 14:00, visit B 14:08 — once B's vendor row is ingested both
+    // count, and B's lagged pet_weight (14:09) does not add a third.
+    const weights = [ev('pet_weight', '2026-07-06T14:09:00Z', { to: 13.2 })]
+    const activity = [
+      ev('activity', '2026-07-06T14:00:00Z', { action: 'Cat Detected' }),
+      ev('activity', '2026-07-06T14:08:00Z', { action: 'Cat Detected' }),
+    ]
+    expect(visitTimestamps(weights, activity)).toHaveLength(2)
+  })
+
+  it('with no Cat Detected at all (cold DB), pet_weight events carry visits', () => {
     const weights = [
       ev('pet_weight', '2026-07-06T18:00:00Z', { to: 13.2 }),
       ev('pet_weight', '2026-07-06T20:00:00Z', { to: 13.1 }),
     ]
-    const activity = [
-      // same visit as the 18:00 weigh-in (30s later) → collapses to one
-      ev('activity', '2026-07-06T18:00:30Z', { action: 'Cat Detected' }),
-      // a distinct visit the scale missed
-      ev('activity', '2026-07-06T22:00:00Z', { action: 'Cat Detected' }),
-      // non-visit activity is ignored
-      ev('activity', '2026-07-06T22:05:00Z', { action: 'Clean Cycle Complete' }),
-    ]
-    const visits = visitTimestamps(weights, activity)
-    expect(visits).toHaveLength(3)
-    expect(visits).toEqual([...visits].sort((a, b) => a - b))
+    expect(visitTimestamps(weights, [])).toHaveLength(2)
   })
 
   it('countToday buckets in LA', () => {

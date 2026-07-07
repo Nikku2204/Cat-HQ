@@ -9,6 +9,7 @@ Research snapshot as of 2026-07-05. All three integrations are unofficial except
 - **Capabilities we use:** robot status (cycle state, waste drawer level, litter level, night light, sleep mode), `start_cleaning()`, `give_snack` equivalent n/a for LR4, activity history, insights, pet/weight data from the built-in scale.
 - **Nature:** reverse-engineered from the Whisker app; explicitly experimental and can stop working at any time. Pin the version; watch the repo's issues when things break.
 - **Adapter notes:** poll every 60s; also investigate the library's update/subscription mechanism at build time to reduce polling.
+- **Quirk (observed live 2026-07-06, M5.7):** the cloud updates `pet_weight_lbs` LAZILY — the recorder's `pet_weight` change event can land minutes (observed up to ~9 min, sometimes longer) after the physical visit. The vendor's "Cat Detected" activity rows carry the real visit timestamps and are the authoritative visit record; treat `pet_weight` events as weight VALUES only, not visit instants (the Den's `visitTimestamps` encodes this — Cat Detected primary, pet_weight only covering the ~10-min history-ingest lag).
 
 ## 2. Petlibro feeder — the risky one
 

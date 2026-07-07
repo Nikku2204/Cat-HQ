@@ -179,13 +179,12 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
           <span className="den-tval">{model.visitsToday}</span>
           {model.usualVisits != null ? (
             <span className="den-tcmp mut">
-              usually {model.usualVisits.toFixed(model.usualVisits < 10 ? 1 : 0)} by
-              now
+              usually ~{Math.round(model.usualVisits)} by now
             </span>
           ) : (
             <span className="den-tcmp mut">still learning her routine</span>
           )}
-          {visitTarget != null ? (
+          {visitTarget != null && (
             <div className="den-minifill" title={`${model.visitsToday} of ~${Math.round(visitTarget)}`}>
               <i
                 style={{
@@ -194,8 +193,6 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
                 }}
               />
             </div>
-          ) : (
-            <div className="den-minifill den-minifill-empty" aria-hidden="true" />
           )}
         </div>
 
