@@ -778,13 +778,16 @@ button {
   place-items: center;
 }
 
+/* Stacked like the Food Machine card (owner request 2026-07-06): the ring
+   photo centered, then the levels row underneath — one shared shape for
+   both device cards. */
 .litter-visual {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 .ring-block {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -815,8 +818,9 @@ button {
 }
 .litter-levels {
   display: flex;
-  gap: 14px;
+  gap: 36px;
   align-items: flex-end;
+  justify-content: center;
 }
 
 /* ── radial gauge + fill tube ── */
@@ -1807,6 +1811,15 @@ svg.spark.den-chart {
 }
 .event-dev.dev-care {
   color: var(--ok);
+}
+
+/* per-event tile tints (power/connectivity) — AFTER the dev-* tints so the
+   event's own state color wins: green = came on, red = went off/failed */
+.evicon.ev-on {
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.evicon.ev-off {
+  background: color-mix(in srgb, var(--bad) 22%, transparent);
 }
 
 /* ── prefers-reduced-motion: everything calms down (docs/05 Part B) ── */

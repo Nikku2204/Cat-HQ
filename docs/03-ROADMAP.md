@@ -256,6 +256,15 @@ gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; owner said
 theme-color #171019 + rose CSS/favicon confirmed served, read-only smoke
 26/26 vs the live container.*
 
+*Consistency pass 2026-07-06 late (owner): (1) Litter card stacked like the
+Food Machine — ring photo centered, Drawer/Litter gauges centered beneath
+(CSS-only, .litter-visual → column). (2) Diary icon system: per-activity
+icons (🐈 detected, ✨ cycle complete, 🌀 in progress, ♻️ counter, ⚖️ weight,
+🗑️ drawer, 😴/💡/⚡), status_change icons by landing state (✅ RDY, 🌀 busy,
+⚠️ fault, 📴 off), and POWER/CONNECTIVITY tiles color-coded — green tile =
+came on (🔌/📶), red tile = went off/failed (🔌/📵/⚠️), restart 🔄 red-then-
+green. Frontend 245 tests (+3 icon suites); precache 282 KiB.*
+
 *Care log + reminders + wording fix 2026-07-06 late (owner): (1) cold-start
 copy corrected — Chutku's a veteran, the APP is what's learning ("Cat HQ is
 still learning his routine/normal"). (2) NEW additive backend endpoint

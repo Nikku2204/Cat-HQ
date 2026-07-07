@@ -20,7 +20,35 @@ function filterParams(filter: FilterKey): { device?: string; type?: string } {
   return { device: filter }
 }
 
-function describe(e: EventOut): { icon: string; text: string } {
+/** Specific icon per litter activity row (owner request 2026-07-06) — the
+ * vendor sends free-text actions, so match on meaning. */
+function activityIcon(action: string): string {
+  const a = action.toLowerCase()
+  if (a.includes('cat detected')) return '🐈'
+  if (a.includes('weight recorded')) return '⚖️'
+  if (a.includes('clean cycle complete')) return '✨'
+  if (a.includes('clean cycle in progress')) return '🌀'
+  if (a.includes('clean cycle')) return '♻️' // incl. the "Clean Cycles: N" counter
+  if (a.includes('drawer') || a.includes('dfi')) return '🗑️'
+  if (a.includes('litter')) return '⏳'
+  if (a.includes('sleep')) return '😴'
+  if (a.includes('light')) return '💡'
+  if (a.includes('power')) return '⚡'
+  return '📋'
+}
+
+/** Litter status transitions get an icon for where they LANDED. */
+function statusIcon(to: string): string {
+  if (isLrFault(to)) return '⚠️'
+  if (to === 'RDY') return '✅'
+  if (to === 'CCC') return '✨'
+  if (['CCP', 'CST', 'CSI', 'EC', 'P'].includes(to)) return '🌀'
+  if (['DFS', 'DF1', 'DF2'].includes(to)) return '🗑️'
+  if (['OFF', 'OFFLINE'].includes(to)) return '📴'
+  return '🔄'
+}
+
+function describe(e: EventOut): { icon: string; text: string; cls?: string } {
   const d = e.data
   const s = (k: string) => String(d[k] ?? '?')
   switch (e.event_type) {
@@ -29,9 +57,12 @@ function describe(e: EventOut): { icon: string; text: string } {
       return { icon: '🍽️', text: `Served ${p} snack${p === 1 ? '' : 's'}` }
     }
     case 'activity':
-      return { icon: '📋', text: s('action') }
+      return { icon: activityIcon(s('action')), text: s('action') }
     case 'status_change':
-      return { icon: '🔄', text: `${lrStatus(d['from'])} → ${lrStatus(d['to'])}` }
+      return {
+        icon: statusIcon(String(d['to'] ?? '')),
+        text: `${lrStatus(d['from'])} → ${lrStatus(d['to'])}`,
+      }
     case 'drawer_level_change':
       return { icon: '🗑️', text: `Waste drawer ${s('from')}% → ${s('to')}%` }
     case 'drawer_full':
@@ -44,7 +75,9 @@ function describe(e: EventOut): { icon: string; text: string } {
     case 'pet_weight':
       return { icon: '⚖️', text: `Chutku weighed ${s('to')} lb` }
     case 'connectivity':
-      return { icon: '📶', text: d['to'] ? 'Back online' : 'Went offline' }
+      return d['to']
+        ? { icon: '📶', text: 'Back online', cls: 'ev-on' }
+        : { icon: '📵', text: 'Went offline', cls: 'ev-off' }
     case 'health_change': {
       const detail = d['detail'] ? ` — ${s('detail')}` : ''
       return { icon: '🩺', text: `Adapter ${s('from')} → ${s('to')}${detail}` }
@@ -72,6 +105,7 @@ function describe(e: EventOut): { icon: string; text: string } {
     // "command" rows from the adapter's power sequence, "poll" rows from
     // observed state diffs (e.g. a toggle in the Govee app).
     case 'power': {
+      // green tile = power came ON, red tile = power went OFF (owner request)
       if (d['command']) {
         const cmd = s('command')
         const step = s('step')
@@ -84,20 +118,28 @@ function describe(e: EventOut): { icon: string; text: string } {
               : 'Switch off'
         if (step === 'failed') {
           const during = d['during'] ? ` during ${s('during')}` : ''
-          return { icon: '⚡', text: `${cmdLabel} FAILED${during}: ${s('error')}` }
-        }
-        if (cmd === 'power_cycle') {
           return {
-            icon: '⚡',
-            text:
-              step === 'off'
-                ? `Restart — powered off (${s('delay_s')}s)`
-                : 'Restart — powered back on',
+            icon: '⚠️',
+            text: `${cmdLabel} FAILED${during}: ${s('error')}`,
+            cls: 'ev-off',
           }
         }
-        return { icon: '⚡', text: cmd === 'power_on' ? 'Plug switched ON' : 'Plug switched OFF' }
+        if (cmd === 'power_cycle') {
+          return step === 'off'
+            ? {
+                icon: '🔄',
+                text: `Restart — powered off (${s('delay_s')}s)`,
+                cls: 'ev-off',
+              }
+            : { icon: '🔄', text: 'Restart — powered back on', cls: 'ev-on' }
+        }
+        return cmd === 'power_on'
+          ? { icon: '🔌', text: 'Plug switched ON', cls: 'ev-on' }
+          : { icon: '🔌', text: 'Plug switched OFF', cls: 'ev-off' }
       }
-      return { icon: '⚡', text: `Plug ${d['to'] ? 'on' : 'off'} (observed)` }
+      return d['to']
+        ? { icon: '🔌', text: 'Plug on (observed)', cls: 'ev-on' }
+        : { icon: '🔌', text: 'Plug off (observed)', cls: 'ev-off' }
     }
     default:
       return { icon: '•', text: `${e.event_type} ${JSON.stringify(d)}` }
@@ -220,14 +262,16 @@ export default function HistoryView({
           const day = fmtDay(e.ts_utc)
           const header = day !== lastDay ? day : null
           lastDay = day
-          const { icon, text } = describe(e)
+          const { icon, text, cls } = describe(e)
           const chip = deviceChip(e.device_id)
           const fault = isFaultEvent(e)
           return (
             <li key={e.id}>
               {header && <div className="day-head">{header}</div>}
               <div className={fault ? 'event-row event-fault' : 'event-row'}>
-                <span className={`event-icon evicon ${chip.cls}`}>{icon}</span>
+                <span className={`event-icon evicon ${chip.cls}${cls ? ` ${cls}` : ''}`}>
+                  {icon}
+                </span>
                 <span className="event-text">{text}</span>
                 <span className={`event-dev ${chip.cls}`}>{chip.label}</span>
                 <span className="event-time">{fmtTime(e.ts_utc)}</span>

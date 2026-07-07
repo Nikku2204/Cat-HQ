@@ -390,3 +390,55 @@ describe('HistoryView deep-link (M5.7 Den tiles)', () => {
     expect(screen.getByRole('button', { name: 'All' })).toHaveClass('active')
   })
 })
+
+describe('Diary icons (owner request 2026-07-06)', () => {
+  it('litter activities get meaning-specific icons', async () => {
+    eventsMock.mockResolvedValueOnce(
+      page([
+        ev({ device_id: 'litterrobot', event_type: 'activity', data: { action: 'Cat Detected' }, ts_utc: ts(0) }),
+        ev({ device_id: 'litterrobot', event_type: 'activity', data: { action: 'Clean Cycle Complete' }, ts_utc: ts(1) }),
+        ev({ device_id: 'litterrobot', event_type: 'activity', data: { action: 'Clean Cycle In Progress' }, ts_utc: ts(2) }),
+        ev({ device_id: 'litterrobot', event_type: 'activity', data: { action: 'Pet Weight Recorded: 13.0 lbs' }, ts_utc: ts(3) }),
+        ev({ device_id: 'litterrobot', event_type: 'activity', data: { action: 'Clean Cycles: 6548' }, ts_utc: ts(4) }),
+      ]),
+    )
+    const { container } = render(<HistoryView />)
+    await screen.findByText('Cat Detected')
+    const icons = [...container.querySelectorAll('.evicon')].map((el) => el.textContent)
+    expect(icons).toEqual(['🐈', '✨', '🌀', '⚖️', '♻️'])
+  })
+
+  it('status transitions get an icon for where they landed', async () => {
+    eventsMock.mockResolvedValueOnce(
+      page([
+        ev({ device_id: 'litterrobot', event_type: 'status_change', data: { from: 'CCP', to: 'RDY' }, ts_utc: ts(0) }),
+        ev({ device_id: 'litterrobot', event_type: 'status_change', data: { from: 'RDY', to: 'CCP' }, ts_utc: ts(1) }),
+        ev({ device_id: 'litterrobot', event_type: 'status_change', data: { from: 'RDY', to: 'PD' }, ts_utc: ts(2) }),
+      ]),
+    )
+    const { container } = render(<HistoryView />)
+    await screen.findByText(/Ready → Clean cycle in progress/)
+    const icons = [...container.querySelectorAll('.evicon')].map((el) => el.textContent)
+    expect(icons).toEqual(['✅', '🌀', '⚠️'])
+  })
+
+  it('power ON is a green tile, OFF a red one; connectivity matches', async () => {
+    eventsMock.mockResolvedValueOnce(
+      page([
+        ev({ device_id: 'plug_feeder', event_type: 'power', source: 'command', data: { command: 'power_on', step: 'done' }, ts_utc: ts(0) }),
+        ev({ device_id: 'plug_feeder', event_type: 'power', source: 'command', data: { command: 'power_off', step: 'done' }, ts_utc: ts(1) }),
+        ev({ device_id: 'feeder', event_type: 'connectivity', data: { to: false }, ts_utc: ts(2) }),
+        ev({ device_id: 'feeder', event_type: 'connectivity', data: { to: true }, ts_utc: ts(3) }),
+      ]),
+    )
+    const { container } = render(<HistoryView />)
+    await screen.findByText('Plug switched ON')
+    const tiles = [...container.querySelectorAll('.evicon')]
+    expect(tiles[0]).toHaveClass('ev-on') // switched ON → green
+    expect(tiles[1]).toHaveClass('ev-off') // switched OFF → red
+    expect(tiles[2]).toHaveClass('ev-off') // went offline → red
+    expect(tiles[2].textContent).toBe('📵')
+    expect(tiles[3]).toHaveClass('ev-on') // back online → green
+    expect(tiles[3].textContent).toBe('📶')
+  })
+})
