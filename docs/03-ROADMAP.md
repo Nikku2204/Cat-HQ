@@ -263,7 +263,8 @@ icons (🐈 detected, ✨ cycle complete, 🌀 in progress, ♻️ counter, ⚖�
 🗑️ drawer, 😴/💡/⚡), status_change icons by landing state (✅ RDY, 🌀 busy,
 ⚠️ fault, 📴 off), and POWER/CONNECTIVITY tiles color-coded — green tile =
 came on (🔌/📶), red tile = went off/failed (🔌/📵/⚠️), restart 🔄 red-then-
-green. Frontend 245 tests (+3 icon suites); precache 282 KiB.*
+green. Frontend 245 tests (+3 icon suites); precache 282 KiB.
+DEPLOYED 2026-07-06 late: adapters ok, smoke ALL PASS vs the container.*
 
 *Care log + reminders + wording fix 2026-07-06 late (owner): (1) cold-start
 copy corrected — Chutku's a veteran, the APP is what's learning ("Cat HQ is
