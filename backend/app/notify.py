@@ -58,6 +58,13 @@ COOLDOWNS: dict[str, timedelta] = {
 
 CARE_DIGEST_HOUR = 19  # local evening — same spirit as the in-app nudges
 
+# "Bowl opens soon" heads-up (owner request 2026-07-07): one message per
+# scheduled feed, this long before it. Deduped per feed OCCURRENCE (the feed's
+# timestamp is the ledger token), and quiet-hours gated so the early-morning
+# feeds never buzz the phone at 4am.
+FEED_HEADS_UP = timedelta(minutes=60)
+FEED_HEADS_UP_WAKING_HOURS = range(8, 22)  # local 08:00–21:59
+
 SendFn = Callable[[str], Awaitable[bool]]
 
 
@@ -112,17 +119,48 @@ class Notifier:
     # ── one evaluation pass ──────────────────────────────────────────────
 
     async def tick(self) -> None:
-        for rule, device, text in await self._due_alerts():
-            await self._maybe_send(rule, device, text)
+        for rule, device, text, token in await self._due_alerts():
+            await self._maybe_send(rule, device, text, token)
 
-    async def _due_alerts(self) -> list[tuple[str, str, str]]:
-        out: list[tuple[str, str, str]] = []
-        out += self._level_rules()
-        out += await self._absence_rules()
+    async def _due_alerts(self) -> list[tuple[str, str, str, str | None]]:
+        """(rule, device, text, dedupe_token). Token rules fire once per
+        token (e.g. per scheduled feed); token-less rules use cooldowns."""
+        out: list[tuple[str, str, str, str | None]] = []
+        out += [(r, d, t, None) for r, d, t in self._level_rules()]
+        out += [(r, d, t, None) for r, d, t in await self._absence_rules()]
         digest = await self._care_digest()
         if digest:
-            out.append(digest)
+            out.append((*digest, None))
+        feed = self._feed_heads_up()
+        if feed:
+            out.append(feed)
         return out
+
+    def _feed_heads_up(self) -> tuple[str, str, str, str] | None:
+        feeder = self._attrs("feeder")
+        if not feeder:
+            return None
+        raw = feeder.get("next_feed_time_utc")
+        if not raw:
+            return None
+        try:
+            feed_at = _parse_iso(str(raw))
+        except ValueError:
+            return None
+        now = self._now()
+        delta = feed_at - now
+        if not (timedelta(0) < delta <= FEED_HEADS_UP):
+            return None
+        if now.astimezone(self._tz).hour not in FEED_HEADS_UP_WAKING_HOURS:
+            return None  # never buzz the phone for the small-hours feeds
+        mins = max(1, round(delta.total_seconds() / 60))
+        local = feed_at.astimezone(self._tz).strftime("%-I:%M %p").lower()
+        return (
+            "feed_soon",
+            "feeder",
+            f"🍽️ Heads up — Chutku's bowl opens in ~{mins}m ({local}).",
+            feed_at.isoformat(),
+        )
 
     # ── level rules: read straight from in-memory adapter state ─────────
 
@@ -302,17 +340,22 @@ class Notifier:
 
     # ── dedupe + send ────────────────────────────────────────────────────
 
-    async def _maybe_send(self, rule: str, device: str, text: str) -> None:
-        if await self._suppressed(rule):
+    async def _maybe_send(
+        self, rule: str, device: str, text: str, token: str | None = None
+    ) -> None:
+        if await self._suppressed(rule, token):
             return
         ok = await self._rate_limited_send(text)
+        payload: dict[str, Any] = {"text": text, "channel": "whatsapp"}
+        if token is not None:
+            payload["token"] = token
         async with self._sf() as session:
             session.add(
                 NotificationLedgerRow(
                     rule=rule,
                     device_id=device,
                     ts_utc=self._now().isoformat(),
-                    payload={"text": text, "channel": "whatsapp"},
+                    payload=payload,
                     delivered=ok,
                 )
             )
@@ -321,25 +364,36 @@ class Notifier:
             "notify %s → %s: %s", rule, "sent" if ok else "FAILED", text
         )
 
-    async def _suppressed(self, rule: str) -> bool:
-        """True if a delivered send exists within the rule's cooldown, or ANY
-        attempt (incl. failed) within the failed-retry window."""
+    async def _suppressed(self, rule: str, token: str | None = None) -> bool:
+        """Token rules: suppressed once a delivered send exists for that exact
+        token (one message per occurrence, ever). Token-less rules: a delivered
+        send within the rule's cooldown suppresses. Either way, ANY attempt
+        (incl. failed) within the failed-retry window suppresses (no hammering).
+        """
         stmt = (
-            select(NotificationLedgerRow.ts_utc, NotificationLedgerRow.delivered)
+            select(
+                NotificationLedgerRow.ts_utc,
+                NotificationLedgerRow.delivered,
+                NotificationLedgerRow.payload,
+            )
             .where(NotificationLedgerRow.rule == rule)
             .order_by(NotificationLedgerRow.ts_utc.desc())
-            .limit(5)
+            .limit(10)
         )
         async with self._sf() as session:
             rows = (await session.execute(stmt)).all()
         now = self._now()
         cooldown = COOLDOWNS.get(rule, timedelta(hours=12))
-        for ts, delivered in rows:
+        for ts, delivered, payload in rows:
             age = now - _parse_iso(ts)
-            if delivered and age < cooldown:
-                return True
             if not delivered and age < FAILED_RETRY_COOLDOWN:
                 return True
+            if delivered:
+                if token is not None:
+                    if (payload or {}).get("token") == token:
+                        return True
+                elif age < cooldown:
+                    return True
         return False
 
     async def _rate_limited_send(self, text: str) -> bool:

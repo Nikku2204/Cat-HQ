@@ -264,3 +264,51 @@ async def test_test_endpoint_503_when_unconfigured(client, app, db):
 async def test_test_endpoint_requires_auth(anon_client, db):
     resp = await anon_client.post("/notify/test")
     assert resp.status_code == 401
+
+
+# ── feed heads-up (owner request 2026-07-07) ─────────────────────────────
+
+
+def feeder_with_feed_at(feed_at: datetime):
+    return feeder_fake(next_feed_time_utc=feed_at.isoformat())
+
+
+async def test_feed_heads_up_fires_once_per_occurrence(db):
+    feed_at = NOW + timedelta(minutes=45)
+    n, spy, clock = make(db, {"feeder": feeder_with_feed_at(feed_at)})
+    await n.tick()
+    assert len(spy.sent) == 1
+    assert "bowl opens in ~45m" in spy.sent[0]
+    clock.advance(10 * 60)
+    await n.tick()  # same scheduled feed → token-deduped, no repeat
+    assert len(spy.sent) == 1
+
+
+async def test_feed_heads_up_new_occurrence_fires_again(db):
+    adapters = {"feeder": feeder_with_feed_at(NOW + timedelta(minutes=30))}
+    n, spy, clock = make(db, adapters)
+    await n.tick()
+    assert len(spy.sent) == 1
+    # the feed happens; the machine schedules the next one 4h out
+    clock.advance(4 * 3600)
+    next_feed = clock.dt() + timedelta(minutes=50)
+    adapters["feeder"].attributes["next_feed_time_utc"] = next_feed.isoformat()
+    await n.tick()
+    assert len(spy.sent) == 2
+
+
+async def test_feed_heads_up_outside_window_is_silent(db):
+    for delta in (timedelta(hours=3), timedelta(minutes=-5)):
+        n, spy, _ = make(db, {"feeder": feeder_with_feed_at(NOW + delta)})
+        await n.tick()
+        assert spy.sent == []
+
+
+async def test_feed_heads_up_respects_quiet_hours(db):
+    # 11:30Z = 4:30am LA; feed at 5:15am LA — inside the window, but night.
+    night = datetime(2026, 7, 6, 11, 30, tzinfo=timezone.utc)
+    n, spy, _ = make(
+        db, {"feeder": feeder_with_feed_at(night + timedelta(minutes=45))}, now=night
+    )
+    await n.tick()
+    assert spy.sent == []
