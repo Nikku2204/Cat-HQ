@@ -133,7 +133,7 @@ describe('FeederCard', () => {
   it('shows the not-configured placeholder and skips the event fetch when no entry', () => {
     render(<FeederCard />)
     expect(
-      screen.getByText('No food bowl yet — set PETLIBRO_* in .env'),
+      screen.getByText('No food machine yet — set PETLIBRO_* in .env'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(mockEvents).not.toHaveBeenCalled()
@@ -364,5 +364,45 @@ describe('FeederCard', () => {
     ).toBeInTheDocument()
     // auto-expanded with the single restore action
     expect(screen.getByText('Hold to switch plug ON')).toBeInTheDocument()
+  })
+})
+
+describe('FeederCard machine ring (owner request 2026-07-06)', () => {
+  beforeEach(() => {
+    mockEvents.mockResolvedValue({ count: 0, events: [] })
+  })
+
+  it('renders the Food Machine title, photo, and a green Ready ring when idle', () => {
+    const { container } = render(<FeederCard entry={feederEntry()} />)
+    expect(screen.getByText('🍽️ Food Machine')).toBeInTheDocument()
+    expect(
+      screen.getByAltText('Chutku beside his food machine'),
+    ).toBeInTheDocument()
+    expect(container.querySelector('.ring')).toHaveAttribute('data-mode', 'ok')
+    expect(screen.getByText('Ready')).toBeInTheDocument()
+  })
+
+  it('ring goes red + Jammed when the dispenser is blocked', () => {
+    const { container } = render(
+      <FeederCard entry={feederEntry({ dispenser_blocked: true })} />,
+    )
+    expect(container.querySelector('.ring')).toHaveAttribute('data-mode', 'bad')
+    expect(screen.getByText('Jammed')).toBeInTheDocument()
+  })
+
+  it('ring sweeps amber while serving', () => {
+    const { container } = render(
+      <FeederCard entry={feederEntry({ running_state: 'GRAIN_OUTPUT' })} />,
+    )
+    expect(container.querySelector('.ring')).toHaveAttribute('data-mode', 'busy')
+    expect(screen.getByText('Serving…')).toBeInTheDocument()
+  })
+
+  it('ring greys out when the machine is offline', () => {
+    const { container } = render(
+      <FeederCard entry={feederEntry({ online: false })} />,
+    )
+    expect(container.querySelector('.ring')).toHaveAttribute('data-mode', 'off')
+    expect(screen.getAllByText('Offline').length).toBeGreaterThan(0)
   })
 })

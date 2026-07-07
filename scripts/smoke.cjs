@@ -80,7 +80,7 @@ const check = (ok, name) => {
   )
 
   // litter card v2: status ring + drawer gauge + litter tube + presence
-  const ringMode = await page.locator('.ring').getAttribute('data-mode')
+  const ringMode = await page.locator('.ring').first().getAttribute('data-mode')
   check(!!ringMode && ringMode !== 'off', `status ring renders (mode=${ringMode})`)
   const statusBig = await page.locator('.status-big').first().textContent()
   check(!!statusBig && statusBig !== '—', `litter status shows ("${statusBig}")`)
@@ -92,12 +92,15 @@ const check = (ok, name) => {
     `presence line renders ("${(presence ?? '').trim()}")`,
   )
 
-  // feeder card v2: 24h dot timeline + live metadata
+  // feeder card v2: machine ring + 24h dot timeline + live metadata
+  const feederCard = page.locator('.card', { hasText: 'Food Machine' })
+  const machineRing = await feederCard.locator('.ring').getAttribute('data-mode')
+  check(
+    !!machineRing && machineRing !== 'off',
+    `food machine ring renders (mode=${machineRing})`,
+  )
   check(await page.locator('.timeline-track').isVisible(), 'feed timeline renders')
-  const feederVisible = await page
-    .locator('.card', { hasText: 'Food Bowl' })
-    .locator('.meta')
-    .isVisible()
+  const feederVisible = await feederCard.locator('.meta').isVisible()
   check(feederVisible, 'feeder card shows live metadata')
   const badges = await page.locator('.card .badge').allTextContents()
   check(badges.length === 2, `health badges present (${badges.join(', ')})`)

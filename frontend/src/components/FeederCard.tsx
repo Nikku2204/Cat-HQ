@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { fmtCountdown, fmtDayTime, fmtTime } from '../format'
 import type { DeviceEntry, EventOut, FeederAttrs, PlugAttrs } from '../types'
+import foodMachine from '../assets/food-machine.jpg'
+import ChutkuAvatar from './ChutkuAvatar'
 import ConfirmButton from './ConfirmButton'
 import HealthBadge from './HealthBadge'
 import PowerZone from './PowerZone'
+import Ring, { type RingMode } from './Ring'
 import TickNumber from './TickNumber'
 
 // UI cap only — the backend allows up to 48, but 12 portions is already a
@@ -107,9 +110,9 @@ export default function FeederCard({
     return (
       <section className="card">
         <div className="card-head">
-          <h2>🍽️ Food Bowl</h2>
+          <h2>🍽️ Food Machine</h2>
         </div>
-        <p className="muted">No food bowl yet — set PETLIBRO_* in .env</p>
+        <p className="muted">No food machine yet — set PETLIBRO_* in .env</p>
         <PowerZone plugId="plug_feeder" plug={plug} />
       </section>
     )
@@ -136,16 +139,52 @@ export default function FeederCard({
     }
   }
 
+  // Machine ring, mirroring the litter card: green steady when ready, amber
+  // sweep while serving, red when jammed, grey when offline.
+  const ringMode: RingMode = !attrs
+    ? 'off'
+    : attrs.online === false
+      ? 'off'
+      : attrs.dispenser_blocked
+        ? 'bad'
+        : attrs.running_state && attrs.running_state !== 'IDLE'
+          ? 'busy'
+          : 'ok'
+  const ringStatus = !attrs
+    ? '—'
+    : attrs.online === false
+      ? 'Offline'
+      : attrs.dispenser_blocked
+        ? 'Jammed'
+        : attrs.running_state && attrs.running_state !== 'IDLE'
+          ? 'Serving…'
+          : 'Ready'
+
   return (
     <section className="card">
       <div className="card-head">
-        <h2>🍽️ Food Bowl</h2>
+        <h2>🍽️ Food Machine</h2>
         <HealthBadge health={entry.health} />
       </div>
 
       {attrs ? (
         <>
           {attrs.name && <p className="subtitle">{attrs.name}</p>}
+
+          <div className="litter-visual">
+            <div className="ring-block">
+              <Ring mode={ringMode}>
+                <ChutkuAvatar
+                  className="ring-photo"
+                  src={foodMachine}
+                  alt="Chutku beside his food machine"
+                />
+              </Ring>
+              <div className="ring-status">
+                <span className="status-big">{ringStatus}</span>
+              </div>
+            </div>
+          </div>
 
           {/* warnings as glanceable chips, not full-width banners (item 3) */}
           {(attrs.online === false ||

@@ -256,6 +256,14 @@ gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; owner said
 theme-color #171019 + rose CSS/favicon confirmed served, read-only smoke
 26/26 vs the live container.*
 
+*Food Machine card 2026-07-06 late (owner): feeder card renamed "Food
+Machine" and given the litter card's ring treatment — owner's photo (Chutku
+beside his Petlibro, IMG_6668 → assets/food-machine.jpg, 62 KB, on-demand
+like all photos) in a status Ring: green Ready / amber Serving / red Jammed
+/ grey Offline, status word beneath. ChutkuAvatar gains an alt prop; smoke
+updated (ring locators strict-mode safe + machine-ring check). Frontend 227
+tests; precache 274 KiB.*
+
 *Warm-cream LIGHT theme + real fonts 2026-07-06 late (owner request:
 white-cream/soft-peach/cozy browns, warm charcoal text, Fredoka/Nunito):
 styles.css :root flipped light — cream bg, soft-peach cards/highlights,
