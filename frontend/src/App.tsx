@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { api, clearToken, getToken, setUnauthorizedHandler } from './api'
 import { fmtUptime } from './format'
 import { useLive, type ConnStatus } from './useLive'
-import type { HealthInfo } from './types'
+import type { Devices, HealthInfo } from './types'
+import { CareCard, RemindersCard, useCare } from './components/Care'
 import Den from './components/Den'
 import FeederCard from './components/FeederCard'
 import HealthBadge from './components/HealthBadge'
@@ -84,6 +85,27 @@ function HealthStrip({ conn }: { conn: ConnStatus }) {
         </span>
       )}
     </div>
+  )
+}
+
+/** The Home pane: mood, needs-you reminders, the two device cards, and the
+ * owner care log. Care state (one fetch) is shared by reminders + log. */
+function HomeCards({ devices }: { devices: Devices }) {
+  const litter = devices['litterrobot']
+  const feeder = devices['feeder']
+  const care = useCare(litter, feeder)
+  return (
+    <>
+      <MoodCard litter={litter} feeder={feeder} />
+      <RemindersCard reminders={care.reminders} />
+      <LitterCard entry={litter} plug={devices['plug_litterrobot']} />
+      <FeederCard entry={feeder} plug={devices['plug_feeder']} />
+      <CareCard
+        statuses={care.statuses}
+        loggedNotice={care.loggedNotice}
+        onLog={care.log}
+      />
+    </>
   )
 }
 
@@ -188,20 +210,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                 <SkeletonCard />
               </>
             ) : (
-              <>
-                <MoodCard
-                  litter={devices['litterrobot']}
-                  feeder={devices['feeder']}
-                />
-                <LitterCard
-                  entry={devices['litterrobot']}
-                  plug={devices['plug_litterrobot']}
-                />
-                <FeederCard
-                  entry={devices['feeder']}
-                  plug={devices['plug_feeder']}
-                />
-              </>
+              <HomeCards devices={devices} />
             )
           ) : tab === 'den' ? (
             <Den

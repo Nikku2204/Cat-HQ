@@ -57,6 +57,7 @@ export default defineConfig({
     proxy: {
       '/devices': backend,
       '/events': backend,
+      '/care': backend,
       '/health': backend,
       '/ws': { target: 'ws://localhost:8000', ws: true },
     },

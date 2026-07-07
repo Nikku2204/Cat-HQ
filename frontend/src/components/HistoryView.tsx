@@ -9,6 +9,7 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'litterrobot', label: 'Litter' },
   { key: 'feeder', label: 'Food' },
+  { key: 'care', label: 'Care' },
   { key: 'power', label: 'Power' },
 ] as const
 export type FilterKey = (typeof FILTERS)[number]['key']
@@ -56,6 +57,16 @@ function describe(e: EventOut): { icon: string; text: string } {
       return { icon: '⚙️', text: `Bowl ${s('from')} → ${s('to')}` }
     case 'feed_count_change':
       return { icon: '🍽️', text: `Snacks today: ${s('from')} → ${s('to')}` }
+    // Owner care log (2026-07-06): brush/nails/play/pet via POST /care
+    case 'care': {
+      const CARE_TEXT: Record<string, { icon: string; text: string }> = {
+        brush: { icon: '🪮', text: 'Brushed his hair' },
+        nails: { icon: '✂️', text: 'Trimmed his nails' },
+        play: { icon: '🧶', text: 'Playtime!' },
+        pet: { icon: '💛', text: 'Pets and cuddles' },
+      }
+      return CARE_TEXT[s('task')] ?? { icon: '💛', text: `Care: ${s('task')}` }
+    }
     // M5.5: mains power events, rendered distinctly. Two honest sources:
     // "command" rows from the adapter's power sequence, "poll" rows from
     // observed state diffs (e.g. a toggle in the Govee app).
@@ -113,6 +124,7 @@ function isFaultEvent(e: EventOut): boolean {
 function deviceChip(deviceId: string): { label: string; cls: string } {
   if (deviceId === 'litterrobot') return { label: 'litter', cls: 'dev-litterrobot' }
   if (deviceId.startsWith('plug_')) return { label: 'plug', cls: 'dev-plug' }
+  if (deviceId === 'care') return { label: 'care', cls: 'dev-care' }
   return { label: deviceId, cls: `dev-${deviceId}` }
 }
 

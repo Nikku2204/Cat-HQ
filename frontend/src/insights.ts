@@ -740,6 +740,162 @@ export function homeMood(opts: {
   }
 }
 
+// ── owner care log (brush / nails / play / pets — 2026-07-06) ─────────────
+// The recurring care no device can see, logged by the owner via POST /care.
+// Cadence rules live here (pure + LA-bucketed); the backend just stores rows.
+
+export type CareTaskKey = 'brush' | 'nails' | 'play' | 'pet'
+
+export interface CareTaskDef {
+  key: CareTaskKey
+  label: string
+  emoji: string
+  /** short cadence hint shown under the label */
+  cadence: string
+}
+
+export const CARE_TASKS: CareTaskDef[] = [
+  { key: 'brush', label: 'Brush his hair', emoji: '🪮', cadence: 'daily' },
+  { key: 'nails', label: 'Nail trim', emoji: '✂️', cadence: 'monthly' },
+  { key: 'play', label: 'Playtime', emoji: '🧶', cadence: 'every evening' },
+  { key: 'pet', label: 'Pets', emoji: '💛', cadence: '3+ a day' },
+]
+
+const NAILS_DUE_DAYS = 30
+const PET_TARGET = 3
+const PLAY_NUDGE_HOUR = 17 // evening task — only nag in the evening
+const PET_NUDGE_HOUR = 16 // behind on pets only counts from late afternoon
+
+export interface CareStatus {
+  key: CareTaskKey
+  /** newest log instant, null if never logged */
+  lastMs: number | null
+  /** logs in today's LA day */
+  countToday: number
+  /** cadence satisfied right now */
+  done: boolean
+  /** should appear in the reminders card NOW (time-gated, non-naggy) */
+  due: boolean
+}
+
+/** Cadence status for every task from the care event rows (data.task). */
+export function careStatuses(events: EventOut[], now: TimeInput): CareStatus[] {
+  const nowMs = toMs(now)
+  const todayKey = laDayKey(nowMs)
+  const hour = laHour(nowMs)
+  const byTask = new Map<string, number[]>()
+  for (const e of events) {
+    const task = String(e.data?.['task'] ?? '')
+    const t = toMs(e.ts_utc)
+    if (!Number.isFinite(t)) continue
+    const arr = byTask.get(task) ?? []
+    arr.push(t)
+    byTask.set(task, arr)
+  }
+
+  return CARE_TASKS.map((def) => {
+    const times = (byTask.get(def.key) ?? []).sort((a, b) => a - b)
+    const lastMs = times.length ? times[times.length - 1] : null
+    const countToday = times.filter((t) => laDayKey(t) === todayKey).length
+    const loggedToday = countToday > 0
+
+    let done: boolean
+    let due: boolean
+    switch (def.key) {
+      case 'brush':
+        done = loggedToday
+        due = !loggedToday
+        break
+      case 'nails':
+        // Monthly. Never-logged = unknown, not overdue (cold-start honesty):
+        // the cycle starts at the first logged trim.
+        done = lastMs != null && nowMs - lastMs <= NAILS_DUE_DAYS * 86_400_000
+        due = lastMs != null && !done
+        break
+      case 'play':
+        done = loggedToday
+        due = !loggedToday && hour >= PLAY_NUDGE_HOUR
+        break
+      case 'pet':
+        done = countToday >= PET_TARGET
+        due = !done && hour >= PET_NUDGE_HOUR
+        break
+    }
+    return { key: def.key, lastMs, countToday, done, due }
+  })
+}
+
+export interface Reminder {
+  icon: string
+  text: string
+  kind: 'care' | 'device'
+}
+
+/** Device needs for the reminders card — factual, plain voice (these are the
+ *  same states the cards flag; here they become a to-do list). */
+export function deviceReminders(opts: {
+  litter?: {
+    online: boolean
+    fault: boolean
+    litterPct: number | null
+    drawerFull: boolean
+  } | null
+  feeder?: { online: boolean; foodLow: boolean; blocked: boolean } | null
+}): Reminder[] {
+  const out: Reminder[] = []
+  const { litter, feeder } = opts
+  if (litter) {
+    if (litter.fault)
+      out.push({ icon: '⚠️', text: 'Litter box fault — see the card below', kind: 'device' })
+    if (!litter.online)
+      out.push({ icon: '📶', text: 'Litter box is offline', kind: 'device' })
+    if (litter.drawerFull)
+      out.push({ icon: '🗑️', text: 'Empty the waste drawer', kind: 'device' })
+    if (litter.litterPct != null && litter.litterPct < 30)
+      out.push({
+        icon: '⏳',
+        text: `Top up the litter (${Math.round(litter.litterPct)}%)`,
+        kind: 'device',
+      })
+  }
+  if (feeder) {
+    if (feeder.blocked)
+      out.push({ icon: '⚠️', text: 'Food machine is jammed', kind: 'device' })
+    if (!feeder.online)
+      out.push({ icon: '📶', text: 'Food machine is offline', kind: 'device' })
+    if (feeder.foodLow)
+      out.push({ icon: '🍚', text: 'Refill the food machine', kind: 'device' })
+  }
+  return out
+}
+
+/** Due care tasks as gentle reminders. */
+export function careReminders(statuses: CareStatus[], now: TimeInput): Reminder[] {
+  const nowMs = toMs(now)
+  const out: Reminder[] = []
+  for (const s of statuses) {
+    if (!s.due) continue
+    const def = CARE_TASKS.find((d) => d.key === s.key)!
+    if (s.key === 'pet') {
+      out.push({
+        icon: def.emoji,
+        text: `Pets: ${s.countToday} of ${PET_TARGET} today`,
+        kind: 'care',
+      })
+    } else if (s.key === 'nails' && s.lastMs != null) {
+      const days = Math.floor((nowMs - s.lastMs) / 86_400_000)
+      out.push({ icon: def.emoji, text: `Nail trim — ${days}d since the last one`, kind: 'care' })
+    } else if (s.key === 'play') {
+      out.push({ icon: def.emoji, text: 'Evening playtime', kind: 'care' })
+    } else {
+      out.push({ icon: def.emoji, text: 'Brush his hair today', kind: 'care' })
+    }
+  }
+  return out
+}
+
+export { PET_TARGET }
+
 // ── event helpers shared by the data hook ────────────────────────────────
 
 const LR_FAULTS = new Set(['CSF', 'PD', 'OTF', 'BR'])

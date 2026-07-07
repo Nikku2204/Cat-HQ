@@ -206,7 +206,7 @@ function VitalsBento({
               title={`14-visit weight trend, now ${weight.current?.toFixed(1)} lb`}
             />
           ) : (
-            <span className="den-learning">still learning his normal</span>
+            <span className="den-learning">Cat HQ is still learning his normal</span>
           )}
         </button>
 
@@ -226,7 +226,7 @@ function VitalsBento({
               usually ~{Math.round(model.usualVisits)} by now
             </span>
           ) : (
-            <span className="den-tcmp mut">still learning his routine</span>
+            <span className="den-tcmp mut">Cat HQ is still learning his routine</span>
           )}
           {visitTarget != null && (
             <div className="den-minifill" title={`${model.visitsToday} of ~${Math.round(visitTarget)}`}>
@@ -383,9 +383,9 @@ function WeightWatch({
         </>
       ) : (
         <p className="den-cold">
-          Still learning Chutku's normal. His weight trend appears here after a
-          few weigh-ins — he steps on the built-in scale each visit. Healthy
-          range set to {band.low}–{band.high} lb.
+          Chutku's an old pro at all this — it's Cat HQ that's still learning
+          his normal. His trend appears after a few more weigh-ins (he weighs
+          in every visit). Healthy range set to {band.low}–{band.high} lb.
         </p>
       )}
     </section>

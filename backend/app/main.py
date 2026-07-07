@@ -18,7 +18,7 @@ from .adapters.base import DeviceAdapter
 from .adapters.govee import GoveePlugAdapter
 from .adapters.litterrobot import LitterRobotAdapter
 from .adapters.petlibro import PetlibroAdapter
-from .api import devices, events, ws
+from .api import care, devices, events, ws
 from .auth import require_auth
 from .broadcast import Hub
 from .config import get_settings
@@ -153,6 +153,7 @@ app = FastAPI(
 # data; the token gates every API call the shell makes).
 app.include_router(devices.router, dependencies=[Depends(require_auth)])
 app.include_router(events.router, dependencies=[Depends(require_auth)])
+app.include_router(care.router, dependencies=[Depends(require_auth)])
 app.include_router(ws.router)  # WS authenticates inside the handshake
 
 # Frontend build output — present in the Docker image (multi-stage build),

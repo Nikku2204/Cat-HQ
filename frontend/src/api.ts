@@ -87,6 +87,14 @@ export const api = {
       { method: 'POST' },
     ),
 
+  // Owner care log (M5.7 follow-on): brushing, nail trims, playtime, pets.
+  // Writes to the shared event log server-side (device 'care').
+  careLog: (task: 'brush' | 'nails' | 'play' | 'pet') =>
+    request<EventOut>('/care', {
+      method: 'POST',
+      body: JSON.stringify({ task }),
+    }),
+
   health: () => request<HealthInfo>('/health'),
 
   events: (params: {

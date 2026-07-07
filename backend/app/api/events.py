@@ -11,7 +11,7 @@ from ..models import Event, EventOut, normalize_iso
 
 router = APIRouter(tags=["events"])
 
-KNOWN_DEVICES = {"litterrobot", "feeder", "plug_litterrobot", "plug_feeder"}
+KNOWN_DEVICES = {"litterrobot", "feeder", "plug_litterrobot", "plug_feeder", "care"}
 
 
 @router.get("/events")

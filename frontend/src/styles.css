@@ -1702,6 +1702,113 @@ svg.spark.den-chart {
   line-height: 1.4;
 }
 
+/* ── reminders ("Needs you") + owner care log (2026-07-06) ── */
+
+.rem-card {
+  gap: 8px;
+}
+.rem-empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.rem-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rem-item {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.rem-item.rem-device {
+  color: var(--warn);
+}
+.rem-item.rem-care {
+  color: var(--text);
+}
+
+.care-card .notice {
+  font-size: 13px;
+}
+.care-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.care-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.care-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.care-emoji {
+  flex: none;
+  font-size: 20px;
+  width: 26px;
+  text-align: center;
+}
+.care-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.care-label {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.care-status {
+  font-size: 12.5px;
+}
+.care-status.ok {
+  color: var(--ok);
+}
+.care-status.mut {
+  color: var(--muted);
+}
+.care-status.warn {
+  color: var(--warn);
+}
+.care-log-btn {
+  flex: none;
+  min-height: 44px;
+  min-width: 64px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.care-log-btn:active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* care rows in the Diary */
+.evicon.dev-care {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+.event-dev.dev-care {
+  color: var(--ok);
+}
+
 /* ── prefers-reduced-motion: everything calms down (docs/05 Part B) ── */
 
 @media (prefers-reduced-motion: reduce) {

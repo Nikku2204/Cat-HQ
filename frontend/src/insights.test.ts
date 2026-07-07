@@ -1,5 +1,8 @@
 import {
   ambientForHour,
+  careReminders,
+  careStatuses,
+  deviceReminders,
   clamp01,
   countByLaDay,
   countToday,
@@ -576,5 +579,93 @@ describe('dailyCounts', () => {
       ev('feed', '2026-07-06T18:00:00Z'), // today
     ]
     expect(dailyCounts(events, '2026-07-06T20:00:00Z')).toEqual([2])
+  })
+})
+
+describe('care log — cadence statuses + reminders (owner tasks)', () => {
+  // 20:00Z = 13:00 LA (PDT): daytime; PLAY/PET nudges are evening-gated.
+  const NOON = new Date('2026-07-06T20:00:00Z').getTime()
+  // 02:00Z next day = 19:00 LA — evening.
+  const EVENING = new Date('2026-07-07T02:00:00Z').getTime()
+  const HOUR = 3_600_000
+  const DAY = 86_400_000
+  const care = (task: string, ts: number) =>
+    ev('care', new Date(ts).toISOString(), { task })
+
+  it('brush: due until logged today, then done', () => {
+    const before = careStatuses([], NOON).find((s) => s.key === 'brush')!
+    expect(before).toMatchObject({ due: true, done: false })
+    const after = careStatuses([care('brush', NOON - HOUR)], NOON).find(
+      (s) => s.key === 'brush',
+    )!
+    expect(after).toMatchObject({ due: false, done: true })
+  })
+
+  it('nails: never logged = neutral (not overdue), >30d = due', () => {
+    const never = careStatuses([], NOON).find((s) => s.key === 'nails')!
+    expect(never).toMatchObject({ due: false, done: false, lastMs: null })
+    const recent = careStatuses([care('nails', NOON - 10 * DAY)], NOON).find(
+      (s) => s.key === 'nails',
+    )!
+    expect(recent.done).toBe(true)
+    const overdue = careStatuses([care('nails', NOON - 35 * DAY)], NOON).find(
+      (s) => s.key === 'nails',
+    )!
+    expect(overdue).toMatchObject({ due: true, done: false })
+  })
+
+  it('play: not nagged at midday, due in the evening, done once logged', () => {
+    expect(careStatuses([], NOON).find((s) => s.key === 'play')!.due).toBe(false)
+    expect(careStatuses([], EVENING).find((s) => s.key === 'play')!.due).toBe(true)
+    const done = careStatuses([care('play', EVENING - HOUR)], EVENING).find(
+      (s) => s.key === 'play',
+    )!
+    expect(done.done).toBe(true)
+  })
+
+  it('pets: counts today in LA, 3+ = done, behind by late afternoon = due', () => {
+    const two = [care('pet', EVENING - 5 * HOUR), care('pet', EVENING - 2 * HOUR)]
+    const s = careStatuses(two, EVENING).find((x) => x.key === 'pet')!
+    expect(s).toMatchObject({ countToday: 2, done: false, due: true })
+    const three = careStatuses(
+      [...two, care('pet', EVENING - HOUR)],
+      EVENING,
+    ).find((x) => x.key === 'pet')!
+    expect(three).toMatchObject({ countToday: 3, done: true, due: false })
+  })
+
+  it('careReminders renders friendly lines for the due ones', () => {
+    const statuses = careStatuses(
+      [care('nails', EVENING - 40 * DAY), care('pet', EVENING - HOUR)],
+      EVENING,
+    )
+    const rems = careReminders(statuses, EVENING)
+    const texts = rems.map((r) => r.text).join(' | ')
+    expect(texts).toContain('Brush his hair today')
+    expect(texts).toContain('Nail trim — 40d since the last one')
+    expect(texts).toContain('Evening playtime')
+    expect(texts).toContain('Pets: 1 of 3 today')
+  })
+
+  it('deviceReminders: factual list from live device states', () => {
+    const rems = deviceReminders({
+      litter: { online: true, fault: false, litterPct: 18, drawerFull: true },
+      feeder: { online: false, foodLow: true, blocked: false },
+    })
+    const texts = rems.map((r) => r.text).join(' | ')
+    expect(texts).toContain('Empty the waste drawer')
+    expect(texts).toContain('Top up the litter (18%)')
+    expect(texts).toContain('Food machine is offline')
+    expect(texts).toContain('Refill the food machine')
+    expect(rems.every((r) => r.kind === 'device')).toBe(true)
+  })
+
+  it('all-good devices produce zero reminders', () => {
+    expect(
+      deviceReminders({
+        litter: { online: true, fault: false, litterPct: 90, drawerFull: false },
+        feeder: { online: true, foodLow: false, blocked: false },
+      }),
+    ).toHaveLength(0)
   })
 })
