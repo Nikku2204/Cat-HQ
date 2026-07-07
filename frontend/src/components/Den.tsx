@@ -6,7 +6,7 @@ import type { WeightBand, WeightSummary } from '../insights'
 import type { Devices } from '../types'
 import GoalRing, { type RingSpec } from './GoalRing'
 import type { FilterKey } from './HistoryView'
-import PinsuAvatar from './PinsuAvatar'
+import ChutkuAvatar from './ChutkuAvatar'
 import PixelCat from './PixelCat'
 import Sparkline from './Sparkline'
 import TickNumber from './TickNumber'
@@ -15,9 +15,9 @@ const DAY_MS = 86_400_000
 // A weight trend only means something after a few weigh-ins (cold-start).
 const MIN_WEIGHT_POINTS = 4
 
-/** 🌙 The Den — insights overview (M5.7). The three MUST sections: the "Pinsu,
+/** 🌙 The Den — insights overview (M5.7). The three MUST sections: the "Chutku,
  *  right now" hero, the 2×2 vitals bento, and Weight Watch. Everything is
- *  cold-start-aware (the DB is only days deep) and honest about her normal.
+ *  cold-start-aware (the DB is only days deep) and honest about his normal.
  *  Every vitals tile taps through to its story: weight → the Weight Watch
  *  card, the rest → the Diary pre-filtered to that metric. */
 export default function Den({
@@ -43,7 +43,7 @@ export default function Den({
       <section className="card den-empty">
         <h2>🌙 The Den</h2>
         <p className="muted">
-          Pinsu's dashboard fills in as Cat HQ watches her day — weigh-ins,
+          Chutku's dashboard fills in as Cat HQ watches his day — weigh-ins,
           litter visits, meals. Connect a device on the Home tab to begin.
         </p>
       </section>
@@ -101,11 +101,11 @@ function DenHero({ model }: { model: DenModel }) {
       <div className={`den-scene den-amb-${ambient.phase}`} aria-hidden="true" />
       <div className={`den-celestial den-${ambient.celestial}`} aria-hidden="true" />
       <div className="den-hero-row">
-        <GoalRing rings={rings} size={128} title="Pinsu's day">
-          <PinsuAvatar className="den-hero-photo" />
+        <GoalRing rings={rings} size={128} title="Chutku's day">
+          <ChutkuAvatar className="den-hero-photo" />
         </GoalRing>
         <div className="den-hero-meta">
-          <span className="den-name">Pinsu</span>
+          <span className="den-name">Chutku</span>
           <span className="den-mood">
             <PixelCat mood={mood.mood} size={15} />
             <span>{sentence}</span>
@@ -167,19 +167,19 @@ function VitalsBento({
   if (weight.current == null) {
     wCmp = { cls: 'mut', text: 'awaiting first weigh-in' }
   } else if (weight.inBand) {
-    wCmp = { cls: 'ok', text: 'in her normal range' }
+    wCmp = { cls: 'ok', text: 'in his normal range' }
   } else {
     const dir = weight.current < band.low ? 'below' : 'above'
-    wCmp = { cls: 'warn', text: `${dir} her normal range` }
+    wCmp = { cls: 'warn', text: `${dir} his normal range` }
   }
 
   const visitTarget =
     model.visitsDayTypical != null ? Math.max(model.visitsDayTypical, 1) : null
 
   return (
-    <section aria-label="Pinsu's vitals">
+    <section aria-label="Chutku's vitals">
       <div className="den-seclabel den-seclabel-loose">
-        Pinsu's vitals · today vs usual
+        Chutku's vitals · today vs usual
       </div>
       <div className="den-bento">
         {/* Weight → the Weight Watch card below */}
@@ -206,7 +206,7 @@ function VitalsBento({
               title={`14-visit weight trend, now ${weight.current?.toFixed(1)} lb`}
             />
           ) : (
-            <span className="den-learning">still learning her normal</span>
+            <span className="den-learning">still learning his normal</span>
           )}
         </button>
 
@@ -226,7 +226,7 @@ function VitalsBento({
               usually ~{Math.round(model.usualVisits)} by now
             </span>
           ) : (
-            <span className="den-tcmp mut">still learning her routine</span>
+            <span className="den-tcmp mut">still learning his routine</span>
           )}
           {visitTarget != null && (
             <div className="den-minifill" title={`${model.visitsToday} of ~${Math.round(visitTarget)}`}>
@@ -367,24 +367,24 @@ function WeightWatch({
             title={`Weight over ${range} days`}
             desc={`Currently ${weight.current?.toFixed(1)} lb, ${
               weight.inBand ? 'within' : 'outside'
-            } Pinsu's normal band of ${band.low}–${band.high} lb.`}
+            } Chutku's normal band of ${band.low}–${band.high} lb.`}
           />
           <div className="den-chart-axis">
             <span>{range}d ago</span>
-            <span className="ok">shaded = Pinsu's normal</span>
+            <span className="ok">shaded = Chutku's normal</span>
             <span>today</span>
           </div>
           {weight.concern === 'weigh-in' && (
             <p className="den-nudge" role="status">
-              Her weight's trended a little low for a few days — might be worth a
+              His weight's trended a little low for a few days — might be worth a
               weigh-in when you get a chance. Just a heads-up, not a diagnosis.
             </p>
           )}
         </>
       ) : (
         <p className="den-cold">
-          Still learning Pinsu's normal. Her weight trend appears here after a
-          few weigh-ins — she steps on the built-in scale each visit. Healthy
+          Still learning Chutku's normal. His weight trend appears here after a
+          few weigh-ins — he steps on the built-in scale each visit. Healthy
           range set to {band.low}–{band.high} lb.
         </p>
       )}
@@ -412,7 +412,7 @@ function bandChip(
 }
 
 /** One plain-language mood line, assembled at render. Outage → factual suffix,
- *  never a sad Pinsu. */
+ *  never a sad Chutku. */
 function moodSentence(model: DenModel): string {
   const { mood, lastVisitMs, anyOffline } = model
   const parts: string[] = [mood.phrase + (mood.emoji ? ` ${mood.emoji}` : '')]

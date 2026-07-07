@@ -392,7 +392,7 @@ describe('care streaks (device/owner actions only)', () => {
 })
 
 describe('mood + ambient', () => {
-  it('an outage is always neutral + factual, never a sad Pinsu', () => {
+  it('an outage is always neutral + factual, never a sad Chutku', () => {
     const m = moodFor({
       laHourNow: 3,
       minsSinceSeen: 600,

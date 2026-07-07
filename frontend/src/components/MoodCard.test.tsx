@@ -90,7 +90,7 @@ describe('MoodCard', () => {
     expect(await screen.findByText(/happiest boy alive/)).toBeInTheDocument()
     expect(container.querySelector('.mood-bounce')).toBeInTheDocument()
     expect(container.querySelector('.mood-hearts')).toBeInTheDocument()
-    expect(container.querySelector('.pixel-cat')).toHaveClass('pose-happy')
+    expect(container.querySelector('.cc')).toHaveClass('pose-happy')
   })
 
   it('reduced motion: still ecstatic, but no animation mounts', async () => {
@@ -131,7 +131,7 @@ describe('MoodCard', () => {
     const { container } = render(<MoodCard litter={litter} feeder={goodFeeder()} />)
     expect(await screen.findByText(/UNIMPRESSED/)).toBeInTheDocument()
     expect(screen.getByText(/Top up the litter, then tap Scoop now/)).toBeInTheDocument()
-    expect(container.querySelector('.pixel-cat')).toHaveClass('pose-grumpy')
+    expect(container.querySelector('.cc')).toHaveClass('pose-grumpy')
   })
 
   it('approves of well-kept facilities', async () => {

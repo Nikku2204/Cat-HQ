@@ -256,6 +256,16 @@ gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; owner said
 theme-color #171019 + rose CSS/favicon confirmed served, read-only smoke
 26/26 vs the live container.*
 
+*Chutku everywhere + marmalade theme + animated Chutku 2026-07-06 late
+(owner): (1) the cat is Chutku (he/him) EVERYWHERE — full UI/test/smoke/.env/
+docs rename (photo filenames keep pinsu*.jpg); (2) theme reworked orange-tabby
+"marmalade den": espresso darks, cream text, marmalade accent, green ok,
+sunny-yellow warn (never orange), clear red bad, sky-blue info; icons/manifest
+#1b120c; (3) the mood card's pixel cat replaced by ChutkuCat.tsx — a NEW
+hand-drawn SVG orange tabby with per-mood expressions and CSS idle animation
+(blink, tail sway, grumpy airplane-ears + tail flicks, scheming pupil darts),
+reduced-motion-gated, zero deps. Frontend 223 tests; precache 273 KiB.*
+
 *Chutku mood card 2026-07-06 evening (owner request): a new top-of-Home card
 reading Chutku's mood from live state + two tiny event lookups (last feed,
 last scoop). Pure ladder in insights.homeMood (tested), ranked by "does the

@@ -2,7 +2,7 @@
 // not-configured placeholder, "No data — <detail>" fallback, offline pill,
 // clean happy path (real ConfirmButton two-tap flow under fake timers),
 // failure notice, disabled matrix (CCP / offline), "Last scoop" from the
-// event log, status ring modes, Pinsu presence + weight sparkline, fault
+// event log, status ring modes, Chutku presence + weight sparkline, fault
 // display, and the plug power zone (docs/05).
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { api } from '../api'
@@ -246,7 +246,7 @@ describe('LitterCard', () => {
     expect(screen.getByText('Hold to restart')).toBeInTheDocument()
   })
 
-  it('renders the Pinsu presence line and weight sparkline from pet_weight events', async () => {
+  it('renders the Chutku presence line and weight sparkline from pet_weight events', async () => {
     const recent = new Date(Date.now() - 12 * 60_000).toISOString() // 12m ago
     const weightEvt = (id: number, ts: string, lbs: number) =>
       evt({ id, event_type: 'pet_weight', ts_utc: ts, data: { field: 'pet_weight_lbs', from: null, to: lbs } })
@@ -267,7 +267,7 @@ describe('LitterCard', () => {
     const { container } = render(<LitterCard entry={litterEntry()} />)
     await flushEffects()
 
-    expect(screen.getByText(/Pinsu visited 12m ago/)).toBeInTheDocument()
+    expect(screen.getByText(/Chutku visited 12m ago/)).toBeInTheDocument()
     expect(container.querySelector('.spark')).toBeInTheDocument()
     expect(screen.getByText('9.6 lb')).toBeInTheDocument() // latest filtered weight
   })

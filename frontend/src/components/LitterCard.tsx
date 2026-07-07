@@ -12,7 +12,7 @@ import type { DeviceEntry, EventOut, LitterAttrs, PlugAttrs } from '../types'
 import ConfirmButton from './ConfirmButton'
 import Gauge from './Gauge'
 import HealthBadge from './HealthBadge'
-import PinsuAvatar from './PinsuAvatar'
+import ChutkuAvatar from './ChutkuAvatar'
 import PowerZone from './PowerZone'
 import Ring, { type RingMode } from './Ring'
 import Sparkline from './Sparkline'
@@ -66,7 +66,7 @@ export default function LitterCard({
     }
   }, [entry != null, attrs?.cycle_count])
 
-  // Pinsu presence + weight trend (docs/05 Part B item 2). Every pet_weight
+  // Chutku presence + weight trend (docs/05 Part B item 2). Every pet_weight
   // event IS a visit (the scale fires when the cat steps in); "Cat Detected"
   // activity rows cover visits the scale didn't log. Refetches when the live
   // weight or cycle count moves.
@@ -150,7 +150,7 @@ export default function LitterCard({
           <div className="litter-visual">
             <div className="ring-block">
               <Ring mode={ringMode}>
-                <PinsuAvatar className="ring-photo" />
+                <ChutkuAvatar className="ring-photo" />
               </Ring>
               <div className={fault ? 'ring-status fault' : 'ring-status'}>
                 {fault ? (
@@ -200,7 +200,7 @@ export default function LitterCard({
           <div className="presence-row">
             <span aria-hidden="true">🐾</span>
             <span>
-              Pinsu visited{' '}
+              Chutku visited{' '}
               {presence.lastVisit ? relTime(presence.lastVisit) : '—'}
             </span>
             {presence.weights.length >= 2 && (
@@ -224,7 +224,7 @@ export default function LitterCard({
               <dd>{attrs.cycle_count ?? '—'}</dd>
             </div>
             <div>
-              <dt>Pinsu weighed</dt>
+              <dt>Chutku weighed</dt>
               <dd>
                 {attrs.pet_weight_lbs ? `${attrs.pet_weight_lbs.toFixed(1)} lb` : '—'}
               </dd>

@@ -88,7 +88,7 @@ const check = (ok, name) => {
   check(await page.locator('.tube-body').isVisible(), 'litter fill tube renders')
   const presence = await page.locator('.presence-row').textContent()
   check(
-    (presence ?? '').includes('Pinsu visited'),
+    (presence ?? '').includes('Chutku visited'),
     `presence line renders ("${(presence ?? '').trim()}")`,
   )
 
@@ -135,7 +135,7 @@ const check = (ok, name) => {
   const rings = await page.locator('.goalring-arc').count()
   check(rings >= 1, `hero goal ring(s) render (${rings} arc${rings === 1 ? '' : 's'})`)
   const heroName = await page.locator('.den-name').textContent()
-  check(heroName === 'Pinsu', `hero names the cat ("${heroName}")`)
+  check(heroName === 'Chutku', `hero names the cat ("${heroName}")`)
   check(await page.locator('.den-bento').isVisible(), 'vitals bento renders')
   const tiles = await page.locator('.den-tile').count()
   check(tiles === 4, `four vitals tiles render (${tiles})`)

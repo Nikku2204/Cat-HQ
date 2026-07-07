@@ -27,7 +27,7 @@ A PWA (installable web app) on the owner's phone showing, live: camera feed, lit
 
 ## Fill in before the first build session
 
-- Cat name(s): **Pinsu**
+- Cat name(s): **Chutku** (he/him; formerly written as Pinsu — renamed everywhere 2026-07-06 per owner)
 - Tapo camera model: _fill in_
 - Petlibro feeder model: **PLAF103 (Granary 5L WiFi)** — confirmed supported by the jjjonesjr33/petlibro HA integration (listed as "Version 2"; verify against the owner's ~2022 unit early in M2)
 - Home server hardware: **TBD — buying (used N100 mini PC or Pi 5)**; developing on owner's PC meanwhile

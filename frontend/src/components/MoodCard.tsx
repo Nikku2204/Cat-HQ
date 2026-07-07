@@ -3,8 +3,8 @@ import { api } from '../api'
 import { isLrFault, prefersReducedMotion } from '../format'
 import { homeMood } from '../insights'
 import type { DeviceEntry, FeederAttrs, LitterAttrs } from '../types'
+import ChutkuCat from './ChutkuCat'
 import { isCleanCycleEvent } from './LitterCard'
-import PixelCat from './PixelCat'
 
 /** Chutku's mood — the top of Home (owner request 2026-07-06). One quirky
  * line about how he's feeling + what (if anything) we should do, built from
@@ -107,7 +107,7 @@ export default function MoodCard({
   return (
     <section className="card mood-card" aria-label="Chutku's mood">
       <div className={celebrate ? 'mood-mascot mood-bounce' : 'mood-mascot'}>
-        <PixelCat pose={mood.pose} size={46} />
+        <ChutkuCat pose={mood.pose} size={86} />
         {celebrate && (
           <span className="mood-hearts" aria-hidden="true">
             <i>♥</i>

@@ -102,17 +102,17 @@ describe('Den — cold start (DB only days deep)', () => {
     const { container } = render(<Den devices={devices} />)
 
     // hero always renders
-    expect(screen.getByText('Pinsu')).toBeInTheDocument()
+    expect(screen.getByText('Chutku')).toBeInTheDocument()
 
     // weight watch is in its cold-start state (fewer than 4 weigh-ins)
     expect(
-      await screen.findByText(/Still learning Pinsu's normal/),
+      await screen.findByText(/Still learning Chutku's normal/),
     ).toBeInTheDocument()
     // and it states the owner-provided healthy range
     expect(screen.getByText(/12\.5–14 lb/)).toBeInTheDocument()
 
     // visits tile: no baseline yet
-    expect(screen.getByText('still learning her routine')).toBeInTheDocument()
+    expect(screen.getByText('still learning his routine')).toBeInTheDocument()
 
     // single meals goal ring on a cold DB (owner Q4: no visits ring yet)
     expect(container.querySelectorAll('.goalring-arc')).toHaveLength(1)
@@ -216,7 +216,7 @@ describe('Den — tiles tap through to their story', () => {
   })
 })
 
-describe('Den — an outage is never a sad Pinsu', () => {
+describe('Den — an outage is never a sad Chutku', () => {
   it('renders factually and keeps the mascot neutral when a device is offline', async () => {
     seed({})
     const devices: Devices = {

@@ -41,7 +41,7 @@ function describe(e: EventOut): { icon: string; text: string } {
     case 'litter_level_change':
       return { icon: '⏳', text: `Litter level ${s('from')} → ${s('to')}` }
     case 'pet_weight':
-      return { icon: '⚖️', text: `Pinsu weighed ${s('to')} lb` }
+      return { icon: '⚖️', text: `Chutku weighed ${s('to')} lb` }
     case 'connectivity':
       return { icon: '📶', text: d['to'] ? 'Back online' : 'Went offline' }
     case 'health_change': {

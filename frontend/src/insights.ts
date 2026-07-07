@@ -12,7 +12,7 @@ import type { EventOut } from './types'
 
 export const LA_TZ = 'America/Los_Angeles'
 
-// Pinsu's healthy weight band, owner-provided (vet-ish range, 2026-07-06).
+// Chutku's healthy weight band, owner-provided (vet-ish range, 2026-07-06).
 // Used as the shaded "normal band" and the seed so the weight tile is never
 // blank during cold-start. Kept a const so a future /insights endpoint or a
 // settings screen can override it in one place.
@@ -369,7 +369,7 @@ export interface WeightSummary {
   current: number | null
   smoothed: WeightSample[] // 7-visit rolling median, cleaned + aligned
   cleaned: WeightSample[] // outlier-filtered raw, aligned
-  reference: number // "Pinsu's normal" center the delta is measured against
+  reference: number // "Chutku's normal" center the delta is measured against
   deltaPct: number | null // (current − reference) / reference · 100
   inBand: boolean
   concern: 'weigh-in' | null // calm amber nudge; only a sustained multi-day dip
@@ -450,7 +450,7 @@ function detectSustainedDip(
   return 'weigh-in'
 }
 
-// ── care streaks (owner/device actions only — never Pinsu's biology) ──────
+// ── care streaks (owner/device actions only — never Chutku's biology) ──────
 
 /** Days since the last "bad" day, counting today. 0 if today already had one.
  *  Bounded at `firstObservedMs` so a 2-day-old DB never claims "no faults 90d".
@@ -514,10 +514,10 @@ export interface MoodResult {
 }
 
 /**
- * Pinsu's pose + a plain mood phrase from cadence, minutes-since-seen, the
+ * Chutku's pose + a plain mood phrase from cadence, minutes-since-seen, the
  * weight band, and the local hour. A neutral "quiet so far" default so sparse
  * mornings never read as alarm; and an OUTAGE is always neutral+factual —
- * never a sad Pinsu (docs/06 non-guilt guardrail).
+ * never a sad Chutku (docs/06 non-guilt guardrail).
  */
 export function moodFor(opts: {
   laHourNow: number

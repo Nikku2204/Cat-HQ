@@ -142,7 +142,7 @@ describe('App shell', () => {
     mockUseLive.mockReturnValue({ devices: litter, conn: 'live' })
     render(<App />)
     fireEvent.click(screen.getByText('🌙 Den'))
-    expect(await screen.findByText('Pinsu')).toBeInTheDocument()
+    expect(await screen.findByText('Chutku')).toBeInTheDocument()
     expect(screen.getByText('Weight watch')).toBeInTheDocument()
   })
 

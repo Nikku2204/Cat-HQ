@@ -29,14 +29,14 @@ describe('GoalRing', () => {
           { pct: 0.5, color: 'var(--accent)', label: 'Visits 4 of 8' },
           { pct: 0.75, color: 'var(--ok)', label: 'Meals 3 of 4' },
         ]}
-        title="Pinsu's day"
+        title="Chutku's day"
       />,
     )
     expect(container.querySelectorAll('.goalring-arc')).toHaveLength(2)
     expect(container.querySelectorAll('.goalring-track')).toHaveLength(2)
     const svg = container.querySelector('svg[role="img"]')!
     expect(svg.getAttribute('aria-label')).toContain('Visits 4 of 8')
-    expect(svg.querySelector('title')?.textContent).toBe("Pinsu's day")
+    expect(svg.querySelector('title')?.textContent).toBe("Chutku's day")
     expect(svg.querySelector('desc')?.textContent).toContain('Meals 3 of 4')
   })
 

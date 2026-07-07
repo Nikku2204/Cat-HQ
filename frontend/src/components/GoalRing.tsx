@@ -8,7 +8,7 @@ import { prefersReducedMotion } from '../format'
 //   C = 2πr ;  stroke-dashoffset = C·(1−pct)  (clamped ≥ 0)
 // rotated −90° to start at 12 o'clock, round caps, over-100% draws a second
 // faint arc so an overshoot still reads. One or two concentric rings; the
-// center holds Pinsu's photo / the mood mascot.
+// center holds Chutku's photo / the mood mascot.
 //
 // The fill animates via a mount toggle + CSS transition (reliable on iOS
 // Safari, and later value changes transition smoothly too). Reduced-motion

@@ -1,26 +1,28 @@
-/* Cat HQ — "cozy rose den" (owner request 2026-07-06: cuter, warmer,
- * friendlier — the midnight den warmed from blue-slate to plum + rose).
+/* Cat HQ — "marmalade den" (owner request 2026-07-06: orange-cat themed,
+ * playful — Chutku IS an orange tabby, so the app wears his fur colors:
+ * espresso darks, cream text, a marmalade accent).
  * Dark, mobile-first. One phone, one household, no theme switcher.
  * Hand-rolled SVG + CSS only — zero runtime deps by design.
  *
- * Color rules survive the retheme: --ok/--warn/--bad keep their semantic
- * jobs, and --bad stays UNMISTAKABLY red (mains power zone must never read
- * as cute pink — docs/05 safety). Everything rides these vars, so this block
+ * Color rules survive every retheme: --ok/--warn/--bad keep their semantic
+ * jobs; --warn is YELLOW here (never orange — it must not blend into the
+ * accent), and --bad stays UNMISTAKABLY red (mains power zone must never
+ * read cute — docs/05 safety). Everything rides these vars, so this block
  * IS the theme. */
 
 :root {
-  --bg: #171019; /* plum-black */
-  --card: #211725;
-  --card-2: #2b1e30;
-  --line: #3a2b41;
-  --text: #f5edf3;
-  --muted: #b19cb3; /* dusty lilac */
-  --accent: #f7a8c4; /* rose pink */
-  --on-accent: #331021; /* text on the rose accent */
-  --ok: #7ce0b8; /* soft mint */
-  --warn: #f6c17e; /* warm apricot */
-  --bad: #f26d6d; /* clear red — distinct from the pink accent on purpose */
-  --info: #b9a7f5; /* lavender */
+  --bg: #1b120c; /* warm espresso */
+  --card: #271a11;
+  --card-2: #342314;
+  --line: #46311d;
+  --text: #f9f1e4; /* cream */
+  --muted: #c4a687; /* latte */
+  --accent: #ff9e42; /* marmalade — Chutku's fur */
+  --on-accent: #33190a; /* text on the marmalade accent */
+  --ok: #7fdca6; /* soft green (his eye color) */
+  --warn: #ffd66b; /* sunny yellow — deliberately NOT orange */
+  --bad: #f2606a; /* clear red — distinct from the accent on purpose */
+  --info: #7db5f0; /* sky blue — playful complement to orange */
   --radius: 20px;
 }
 
@@ -32,9 +34,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  /* den depth: a faint rose-lit pool at the top, fading into the dark */
+  /* den depth: a faint lamp-lit pool at the top, fading into the dark */
   background:
-    radial-gradient(120% 60% at 50% -12%, #2a1b2e 0%, var(--bg) 60%) fixed,
+    radial-gradient(120% 60% at 50% -12%, #2f1d10 0%, var(--bg) 60%) fixed,
     var(--bg);
   color: var(--text);
   /* ui-rounded → SF Rounded on the owner's iPhone: instantly softer, free */
@@ -443,14 +445,14 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── login ── full-bleed Pinsu photo, card floated at the bottom ── */
+/* ── login ── full-bleed Chutku photo, card floated at the bottom ── */
 
 .login {
   position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* card sits at the bottom, Pinsu fills above */
+  justify-content: flex-end; /* card sits at the bottom, Chutku fills above */
   align-items: center;
   padding: 24px;
   padding-bottom: calc(28px + env(safe-area-inset-bottom));
@@ -462,7 +464,7 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 32% 38%; /* keep Pinsu's face in frame after cover-crop */
+  object-position: 32% 38%; /* keep Chutku's face in frame after cover-crop */
   image-orientation: from-image;
   z-index: 0;
   user-select: none;
@@ -472,7 +474,7 @@ button {
   position: fixed;
   inset: 0;
   z-index: 1;
-  /* readable card/text at the bottom, Pinsu visible up top */
+  /* readable card/text at the bottom, Chutku visible up top */
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--bg) 20%, transparent) 0%,
@@ -537,7 +539,7 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  overflow: hidden; /* clip Pinsu's photo to the circle */
+  overflow: hidden; /* clip Chutku's photo to the circle */
   display: grid;
   place-items: center;
   background: var(--card-2);
@@ -546,7 +548,7 @@ button {
   transition: border-color 0.3s ease;
 }
 
-/* Pinsu's actual photo, framed round. object-position biases toward the top
+/* Chutku's actual photo, framed round. object-position biases toward the top
    so the face lands in the circle; from-image honors the JPEG's EXIF. */
 .pinsu-photo {
   width: 100%;
@@ -615,7 +617,7 @@ button {
 }
 .sk {
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--card-2) 25%, #352640 37%, var(--card-2) 63%);
+  background: linear-gradient(90deg, var(--card-2) 25%, #3d2a17 37%, var(--card-2) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }
@@ -860,7 +862,7 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Pinsu presence + weight sparkline ── */
+/* ── Chutku presence + weight sparkline ── */
 
 .presence-row {
   display: flex;
@@ -1517,13 +1519,89 @@ svg.spark.den-chart {
 .mood-mascot {
   position: relative;
   flex: none;
-  width: 54px;
+  width: 92px;
   display: grid;
   place-items: center;
   color: var(--accent);
 }
-.mood-bounce .pixel-cat {
+.mood-bounce .cc {
   animation: mood-bounce 0.9s ease-in-out infinite;
+}
+
+/* ── ChutkuCat: the hand-drawn tabby is always gently alive ── */
+.cc {
+  display: block;
+  overflow: visible;
+}
+.cc-tail {
+  transform-box: fill-box;
+  transform-origin: 12% 88%;
+  animation: cc-tail 3.4s ease-in-out infinite;
+}
+.pose-happy .cc-tail {
+  animation-duration: 1.2s; /* excited tail */
+}
+.pose-grumpy .cc-tail {
+  animation: cc-flick 4.2s ease-in-out infinite; /* irritated flicks */
+}
+@keyframes cc-tail {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-13deg);
+  }
+}
+@keyframes cc-flick {
+  0%,
+  82%,
+  100% {
+    transform: rotate(0deg);
+  }
+  88% {
+    transform: rotate(12deg);
+  }
+  93% {
+    transform: rotate(-5deg);
+  }
+}
+.cc-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cc-blink 5s infinite;
+}
+@keyframes cc-blink {
+  0%,
+  92.5%,
+  100% {
+    transform: scaleY(1);
+  }
+  94.5% {
+    transform: scaleY(0.08);
+  }
+  96.5% {
+    transform: scaleY(1);
+  }
+}
+/* the food schemer: pupils dart side to side, casing the kitchen */
+.pose-alert .cc-pupils {
+  animation: cc-dart 2.4s ease-in-out infinite;
+}
+@keyframes cc-dart {
+  0%,
+  18%,
+  100% {
+    transform: translateX(0);
+  }
+  32%,
+  50% {
+    transform: translateX(2.6px);
+  }
+  66%,
+  86% {
+    transform: translateX(-2.6px);
+  }
 }
 @keyframes mood-bounce {
   0%,
@@ -1610,9 +1688,13 @@ svg.spark.den-chart {
   .den-tile:active {
     transform: none;
   }
-  /* the celebration also skips mounting under reduced motion (MoodCard) */
-  .mood-bounce .pixel-cat,
-  .mood-hearts i {
+  /* the celebration skips mounting under reduced motion, and Chutku holds
+     a friendly static frame (no bounce, blink, tail, or pupil motion) */
+  .mood-bounce .cc,
+  .mood-hearts i,
+  .cc-tail,
+  .cc-blink,
+  .pose-alert .cc-pupils {
     animation: none !important;
   }
   /* no fake progress: the label ("Keep holding…") carries the state */

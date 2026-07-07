@@ -77,9 +77,19 @@ CHUTKU MOOD CARD (2026-07-06 evening, owner request): top of Home; pure
 ladder in insights.homeMood — plain fault/offline > litter grievances w/
 actions > just-ate celebration (hearts, motion-gated, instant via live
 feed-count bump) > pre-meal "scam" warning (≤35m) > approval > neutral.
-NAMING: the owner calls the cat "Chutku" (he/him) in this request; the
-rest of the app says Pinsu (her). Mood card says Chutku; ASK before
-unifying names/pronouns app-wide.
+NAMING RESOLVED (2026-07-06 late): the cat is **Chutku (he/him)
+EVERYWHERE** — owner decision. All UI copy, tests, smoke, .env CAT_NAMES,
+docs/00 renamed; ChutkuAvatar.tsx (was PinsuAvatar). Only the photo asset
+FILENAMES keep pinsu*.jpg (binary churn not worth it).
+MARMALADE THEME (2026-07-06 late, owner: "orange cat themed, playful"):
+styles.css :root — espresso darks, cream text, marmalade accent #ff9e42
+(Chutku IS an orange tabby), green ok (his eyes), SUNNY-YELLOW warn
+(deliberately not orange so it can't blend into the accent), clear red
+bad, sky-blue info. Icons/favicon/manifest #1b120c. ChutkuCat.tsx: NEW
+hand-drawn SVG tabby on the mood card (replaces the pixel cat there ONLY;
+PixelCat stays in header/Den) — per-pose expressions (happy/grumpy/alert/
+awake), CSS idle animations (blink, tail sway/flick, pupil dart), all
+reduced-motion-gated. Zero deps.
 COZY-ROSE RETHEME (2026-07-06 evening, owner request "women friendly and
 cuter"): the app-wide palette lives in styles.css `:root` — plum darks,
 rose accent, lavender/mint/apricot, --on-accent for text-on-rose; --bad is
