@@ -270,7 +270,9 @@ offline, plain voice). Diary gains a Care filter chip + friendly care rows.
 In-app only for now — PUSH stays M8 (needs the HTTPS service worker).
 Fifth task added same session: 💧 water filter, every 2 weeks (interval
 rule shared with nails). Backend 295 / frontend 242 tests; precache 281
-KiB; smoke: 5 cards + five care rows.*
+KiB; smoke: 5 cards + five care rows.
+DEPLOYED 2026-07-06 late: adapters ok; POST /care live (unauth probe 401,
+no write); /events?device=care accepted; smoke ALL PASS vs the container.*
 
 *Food Machine card 2026-07-06 late (owner): feeder card renamed "Food
 Machine" and given the litter card's ring treatment — owner's photo (Chutku
