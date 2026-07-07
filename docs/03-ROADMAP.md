@@ -264,7 +264,9 @@ sunny-yellow warn (never orange), clear red bad, sky-blue info; icons/manifest
 #1b120c; (3) the mood card's pixel cat replaced by ChutkuCat.tsx — a NEW
 hand-drawn SVG orange tabby with per-mood expressions and CSS idle animation
 (blink, tail sway, grumpy airplane-ears + tail flicks, scheming pupil darts),
-reduced-motion-gated, zero deps. Frontend 223 tests; precache 273 KiB.*
+reduced-motion-gated, zero deps. Frontend 223 tests; precache 273 KiB.
+DEPLOYED 2026-07-06 late: /health cats=[Chutku], all four adapters ok,
+marmalade CSS + ChutkuCat confirmed served, smoke 27/27 vs live.*
 
 *Chutku mood card 2026-07-06 evening (owner request): a new top-of-Home card
 reading Chutku's mood from live state + two tiny event lookups (last feed,
