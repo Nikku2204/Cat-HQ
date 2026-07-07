@@ -267,7 +267,9 @@ like the photos (273 KiB held); rounded system stack is the fallback.
 Shadows warmed/softened, skeleton shimmer lightened, ChutkuCat gets a white
 chest + brown whiskers so he pops on peach, login scrim lightened so the
 photo stays vivid, iOS status bar → default (dark text), icons/manifest
-regenerated cream #fbf6ee. Frontend 223 tests.*
+regenerated cream #fbf6ee. Frontend 223 tests.
+DEPLOYED 2026-07-06 late: all four adapters ok, both woff2 fonts serving
+(200), Fredoka in the live CSS, smoke 27/27 vs the container.*
 
 *Chutku everywhere + marmalade theme + animated Chutku 2026-07-06 late
 (owner): (1) the cat is Chutku (he/him) EVERYWHERE — full UI/test/smoke/.env/
