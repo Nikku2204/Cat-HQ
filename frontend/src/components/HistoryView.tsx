@@ -11,7 +11,7 @@ const FILTERS = [
   { key: 'feeder', label: 'Food' },
   { key: 'power', label: 'Power' },
 ] as const
-type FilterKey = (typeof FILTERS)[number]['key']
+export type FilterKey = (typeof FILTERS)[number]['key']
 
 function filterParams(filter: FilterKey): { device?: string; type?: string } {
   if (filter === 'all') return {}
@@ -116,8 +116,15 @@ function deviceChip(deviceId: string): { label: string; cls: string } {
   return { label: deviceId, cls: `dev-${deviceId}` }
 }
 
-export default function HistoryView() {
-  const [filter, setFilter] = useState<FilterKey>('all')
+/** `initialFilter` lets other views deep-link into a pre-filtered Diary
+ *  (M5.7: tapping a Den vitals tile jumps to that metric's story). The pane
+ *  remounts on tab switch, so this is read fresh each navigation. */
+export default function HistoryView({
+  initialFilter = 'all',
+}: {
+  initialFilter?: FilterKey
+} = {}) {
+  const [filter, setFilter] = useState<FilterKey>(initialFilter)
   const [events, setEvents] = useState<EventOut[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

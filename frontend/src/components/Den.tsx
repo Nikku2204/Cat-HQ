@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
-import { fmtCountdown, relTime } from '../format'
+import { useEffect, useRef, useState } from 'react'
+import { fmtCountdown, prefersReducedMotion, relTime } from '../format'
 import type { DenModel, LitterState } from '../useInsights'
 import { useInsights } from '../useInsights'
 import type { WeightBand, WeightSummary } from '../insights'
 import type { Devices } from '../types'
 import GoalRing, { type RingSpec } from './GoalRing'
+import type { FilterKey } from './HistoryView'
 import PinsuAvatar from './PinsuAvatar'
 import PixelCat from './PixelCat'
 import Sparkline from './Sparkline'
@@ -16,8 +17,16 @@ const MIN_WEIGHT_POINTS = 4
 
 /** 🌙 The Den — insights overview (M5.7). The three MUST sections: the "Pinsu,
  *  right now" hero, the 2×2 vitals bento, and Weight Watch. Everything is
- *  cold-start-aware (the DB is only days deep) and honest about her normal. */
-export default function Den({ devices }: { devices: Devices }) {
+ *  cold-start-aware (the DB is only days deep) and honest about her normal.
+ *  Every vitals tile taps through to its story: weight → the Weight Watch
+ *  card, the rest → the Diary pre-filtered to that metric. */
+export default function Den({
+  devices,
+  onOpenDiary,
+}: {
+  devices: Devices
+  onOpenDiary?: (filter: FilterKey) => void
+}) {
   // A gentle heartbeat so relTime / the mood / the meal countdown stay honest
   // without refetching (the hook only refetches on real device change).
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -27,6 +36,7 @@ export default function Den({ devices }: { devices: Devices }) {
   }, [])
 
   const model = useInsights(devices, nowMs)
+  const weightRef = useRef<HTMLElement | null>(null)
 
   if (!model.hasData) {
     return (
@@ -43,8 +53,18 @@ export default function Den({ devices }: { devices: Devices }) {
   return (
     <>
       <DenHero model={model} />
-      <VitalsBento model={model} nowMs={nowMs} />
-      <WeightWatch model={model} nowMs={nowMs} />
+      <VitalsBento
+        model={model}
+        nowMs={nowMs}
+        onOpenDiary={onOpenDiary}
+        onOpenWeight={() =>
+          weightRef.current?.scrollIntoView({
+            behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+            block: 'start',
+          })
+        }
+      />
+      <WeightWatch model={model} nowMs={nowMs} sectionRef={weightRef} />
     </>
   )
 }
@@ -128,7 +148,17 @@ function DenHero({ model }: { model: DenModel }) {
 
 // ── vitals bento ─────────────────────────────────────────────────────────
 
-function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
+function VitalsBento({
+  model,
+  nowMs,
+  onOpenDiary,
+  onOpenWeight,
+}: {
+  model: DenModel
+  nowMs: number
+  onOpenDiary?: (filter: FilterKey) => void
+  onOpenWeight: () => void
+}) {
   const { weight, meals, band } = model
   const wSpark = weight.cleaned.slice(-14).map((s) => s.lb)
 
@@ -152,8 +182,15 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
         Pinsu's vitals · today vs usual
       </div>
       <div className="den-bento">
-        {/* Weight */}
-        <div className="den-tile">
+        {/* Weight → the Weight Watch card below */}
+        <button
+          className="den-tile"
+          onClick={onOpenWeight}
+          aria-label="Weight — open Weight Watch"
+        >
+          <span className="den-go" aria-hidden="true">
+            ›
+          </span>
           <span className="den-tlabel">Weight</span>
           <span className="den-tval">
             {weight.current != null ? weight.current.toFixed(1) : '—'}
@@ -171,10 +208,17 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
           ) : (
             <span className="den-learning">still learning her normal</span>
           )}
-        </div>
+        </button>
 
-        {/* Visits today */}
-        <div className="den-tile">
+        {/* Visits today → Diary, litter only */}
+        <button
+          className="den-tile"
+          onClick={() => onOpenDiary?.('litterrobot')}
+          aria-label="Visits today — open the litter diary"
+        >
+          <span className="den-go" aria-hidden="true">
+            ›
+          </span>
           <span className="den-tlabel">Visits today</span>
           <span className="den-tval">{model.visitsToday}</span>
           {model.usualVisits != null ? (
@@ -194,10 +238,17 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
               />
             </div>
           )}
-        </div>
+        </button>
 
-        {/* Meals */}
-        <div className="den-tile">
+        {/* Meals → Diary, food only */}
+        <button
+          className="den-tile"
+          onClick={() => onOpenDiary?.('feeder')}
+          aria-label="Meals — open the food diary"
+        >
+          <span className="den-go" aria-hidden="true">
+            ›
+          </span>
           <span className="den-tlabel">Meals</span>
           <span className="den-tval">
             {meals.served}
@@ -213,10 +264,17 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
           <div className="den-minifill">
             <i style={{ width: `${meals.pct * 100}%`, background: 'var(--ok)' }} />
           </div>
-        </div>
+        </button>
 
-        {/* Care streak */}
-        <div className="den-tile">
+        {/* Care streak → the full Diary (faults + outages live there) */}
+        <button
+          className="den-tile"
+          onClick={() => onOpenDiary?.('all')}
+          aria-label="Care streak — open the diary"
+        >
+          <span className="den-go" aria-hidden="true">
+            ›
+          </span>
           <span className="den-tlabel">Care streak</span>
           <span className="den-tval den-tval-sm">
             Feeder {model.feederOnlineStreak}d
@@ -232,7 +290,7 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
               />
             ))}
           </div>
-        </div>
+        </button>
       </div>
     </section>
   )
@@ -240,7 +298,15 @@ function VitalsBento({ model, nowMs }: { model: DenModel; nowMs: number }) {
 
 // ── weight watch ─────────────────────────────────────────────────────────
 
-function WeightWatch({ model, nowMs }: { model: DenModel; nowMs: number }) {
+function WeightWatch({
+  model,
+  nowMs,
+  sectionRef,
+}: {
+  model: DenModel
+  nowMs: number
+  sectionRef?: React.RefObject<HTMLElement | null>
+}) {
   const [range, setRange] = useState<30 | 90>(30)
   const { weight, band } = model
 
@@ -255,7 +321,7 @@ function WeightWatch({ model, nowMs }: { model: DenModel; nowMs: number }) {
   const chip = bandChip(weight, band)
 
   return (
-    <section className="card" aria-label="Weight watch">
+    <section className="card" aria-label="Weight watch" ref={sectionRef}>
       <div className="den-headrow">
         <span className="den-seclabel">Weight watch</span>
         <div className="den-toggle" role="group" aria-label="Weight range">

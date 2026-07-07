@@ -73,6 +73,15 @@ backend healthy, served bundle is the new index-*.js with the Den; smoke
 milestones/badges) are the next session. Built SOLO under ultracode effort
 (owner said "work solo" in the prompt — honored despite workflow
 orchestration being enabled).
+COZY-ROSE RETHEME (2026-07-06 evening, owner request "women friendly and
+cuter"): the app-wide palette lives in styles.css `:root` — plum darks,
+rose accent, lavender/mint/apricot, --on-accent for text-on-rose; --bad is
+deliberately a CLEAR red distinct from the pink accent (mains power zone
+must never look cute). ui-rounded font, radius 20px, rose favicon.svg +
+PWA PNGs (regenerate via a playwright render if the svg changes),
+manifest+meta theme_color #171019. Den vitals tiles are BUTTONS tapping
+through to their story (Weight → Weight Watch scroll; Visits/Meals/Care →
+Diary via HistoryView's `initialFilter` prop; Diary tab always opens All).
 Day-1 accuracy pass (2026-07-06 evening): LR4 QUIRK — the cloud updates
 pet_weight_lbs LAZILY (38s–9min+ after the visit; docs/02), which
 double-counted visits. visitTimestamps now treats "Cat Detected" as

@@ -241,6 +241,19 @@ backend healthy + go2rtc up; read-only smoke 26/26 vs the LIVE container (it
 even caught Pinsu mid-visit: ring busy "Cat Sensor Timing", "visited 8m ago").
 MUST v1 is live on the phone. SHOULD/COULD sections are the next session.*
 
+*Cozy-rose retheme + tappable tiles 2026-07-06 evening (owner request: "women
+friendly and cuter, more towards cat"): the midnight den warmed from blue-slate
+to plum + rose — new palette in styles.css `:root` (rose accent #f7a8c4,
+lavender info, mint ok, apricot warn; --bad stays UNMISTAKABLY red so the mains
+power zone can never read cute), ui-rounded font (SF Rounded on the phone, zero
+deps), --radius 20px, rose favicon + all four PWA icons regenerated, manifest/
+theme-color updated. Den vitals tiles are now BUTTONS that tap through to
+their story: Weight → scrolls to Weight Watch; Visits/Meals/Care → the Diary
+pre-filtered (new `initialFilter` prop on HistoryView, wired via App; the Diary
+tab itself always opens on All). Chevron affordance + press squish (motion-
+gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; rebuild
+awaits owner approval.*
+
 *Accuracy pass 2026-07-06 evening (day-1 real data review): found and fixed a
 visit double-count — the Whisker cloud updates `pet_weight_lbs` LAZILY (change
 events observed landing 38s–9min after the matching "Cat Detected"), so naive

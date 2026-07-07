@@ -370,3 +370,23 @@ describe('HistoryView', () => {
     expect(eventsMock).toHaveBeenLastCalledWith({ type: 'power', limit: 50 })
   })
 })
+
+describe('HistoryView deep-link (M5.7 Den tiles)', () => {
+  it('initialFilter pre-selects the chip and scopes the first fetch', async () => {
+    eventsMock.mockResolvedValueOnce(
+      page([ev({ device_id: 'litterrobot', event_type: 'activity', data: { action: 'Cat Detected' } })]),
+    )
+    render(<HistoryView initialFilter="litterrobot" />)
+    await screen.findByText('Cat Detected')
+    expect(eventsMock).toHaveBeenCalledWith({ device: 'litterrobot', limit: 50 })
+    expect(screen.getByRole('button', { name: 'Litter' })).toHaveClass('active')
+  })
+
+  it('defaults to All when no initialFilter is given', async () => {
+    eventsMock.mockResolvedValueOnce(page([ev()]))
+    render(<HistoryView />)
+    await screen.findByText('Served 2 snacks')
+    expect(eventsMock).toHaveBeenCalledWith({ limit: 50 })
+    expect(screen.getByRole('button', { name: 'All' })).toHaveClass('active')
+  })
+})

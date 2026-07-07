@@ -6,7 +6,7 @@ import type { HealthInfo } from './types'
 import Den from './components/Den'
 import FeederCard from './components/FeederCard'
 import HealthBadge from './components/HealthBadge'
-import HistoryView from './components/HistoryView'
+import HistoryView, { type FilterKey } from './components/HistoryView'
 import LitterCard from './components/LitterCard'
 import Login from './components/Login'
 import PixelCat from './components/PixelCat'
@@ -100,6 +100,9 @@ function SkeletonCard() {
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const { devices, conn } = useLive()
   const [tab, setTab] = useState<Tab>('status')
+  // Den tiles deep-link into a pre-filtered Diary; tapping the Diary tab
+  // itself always lands on "All". The pane remounts per tab (key={tab}).
+  const [diaryFilter, setDiaryFilter] = useState<FilterKey>('all')
   const [stripOpen, setStripOpen] = useState(false)
   const [longOffline, setLongOffline] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -196,9 +199,15 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               </>
             )
           ) : tab === 'den' ? (
-            <Den devices={devices} />
+            <Den
+              devices={devices}
+              onOpenDiary={(filter) => {
+                setDiaryFilter(filter)
+                setTab('history')
+              }}
+            />
           ) : (
-            <HistoryView />
+            <HistoryView initialFilter={diaryFilter} />
           )}
         </div>
       </main>
@@ -224,7 +233,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </button>
         <button
           className={tab === 'history' ? 'tab active' : 'tab'}
-          onClick={() => setTab('history')}
+          onClick={() => {
+            setDiaryFilter('all')
+            setTab('history')
+          }}
         >
           🐾 Diary
         </button>

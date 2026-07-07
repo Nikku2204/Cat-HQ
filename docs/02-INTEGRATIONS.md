@@ -10,6 +10,7 @@ Research snapshot as of 2026-07-05. All three integrations are unofficial except
 - **Nature:** reverse-engineered from the Whisker app; explicitly experimental and can stop working at any time. Pin the version; watch the repo's issues when things break.
 - **Adapter notes:** poll every 60s; also investigate the library's update/subscription mechanism at build time to reduce polling.
 - **Quirk (observed live 2026-07-06, M5.7):** the cloud updates `pet_weight_lbs` LAZILY — the recorder's `pet_weight` change event can land minutes (observed up to ~9 min, sometimes longer) after the physical visit. The vendor's "Cat Detected" activity rows carry the real visit timestamps and are the authoritative visit record; treat `pet_weight` events as weight VALUES only, not visit instants (the Den's `visitTimestamps` encodes this — Cat Detected primary, pet_weight only covering the ~10-min history-ingest lag).
+- **Related:** the vendor activity feed also contains `Pet Weight Recorded: N lbs` rows with ACCURATE timestamps — a better-timestamped weigh-in source than the poll-diffed `pet_weight` events if per-visit weight timing ever matters (future refinement; the 30-day trend doesn't care about ±minutes).
 
 ## 2. Petlibro feeder — the risky one
 

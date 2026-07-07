@@ -185,6 +185,37 @@ describe('Den — a populated day', () => {
   })
 })
 
+describe('Den — tiles tap through to their story', () => {
+  it('visits/meals/streak tiles open the Diary pre-filtered; weight scrolls to Weight Watch', async () => {
+    seed({})
+    const onOpenDiary = vi.fn()
+    const scrollSpy = vi.fn()
+    // jsdom has no scrollIntoView — stub it on the prototype
+    Element.prototype.scrollIntoView = scrollSpy
+    const devices: Devices = {
+      litterrobot: litterDevice({ pet_weight_lbs: 13.2 }),
+      feeder: feederDevice({}),
+    }
+    render(<Den devices={devices} onOpenDiary={onOpenDiary} />)
+    const user = (await import('@testing-library/user-event')).default.setup()
+
+    await user.click(
+      screen.getByRole('button', { name: /Visits today — open the litter diary/ }),
+    )
+    expect(onOpenDiary).toHaveBeenLastCalledWith('litterrobot')
+
+    await user.click(screen.getByRole('button', { name: /Meals — open the food diary/ }))
+    expect(onOpenDiary).toHaveBeenLastCalledWith('feeder')
+
+    await user.click(screen.getByRole('button', { name: /Care streak — open the diary/ }))
+    expect(onOpenDiary).toHaveBeenLastCalledWith('all')
+
+    await user.click(screen.getByRole('button', { name: /Weight — open Weight Watch/ }))
+    expect(scrollSpy).toHaveBeenCalled()
+    expect(onOpenDiary).toHaveBeenCalledTimes(3) // weight never leaves the Den
+  })
+})
+
 describe('Den — an outage is never a sad Pinsu', () => {
   it('renders factually and keeps the mascot neutral when a device is offline', async () => {
     seed({})
