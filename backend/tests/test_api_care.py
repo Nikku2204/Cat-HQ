@@ -13,7 +13,7 @@ async def test_care_requires_auth(anon_client, db):
     assert resp.status_code == 401
 
 
-@pytest.mark.parametrize("task", ["brush", "nails", "play", "pet"])
+@pytest.mark.parametrize("task", ["brush", "nails", "play", "pet", "water"])
 async def test_log_each_task(client, db, task):
     resp = await client.post("/care", json={"task": task})
     assert resp.status_code == 200

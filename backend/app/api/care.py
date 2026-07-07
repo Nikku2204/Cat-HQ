@@ -24,7 +24,7 @@ router = APIRouter(tags=["care"])
 
 # The four owner-defined tasks (2026-07-06). Adding one = extend this Literal
 # and the frontend's CARE_TASKS list.
-CareTask = Literal["brush", "nails", "play", "pet"]
+CareTask = Literal["brush", "nails", "play", "pet", "water"]
 
 
 class CareLogIn(BaseModel):

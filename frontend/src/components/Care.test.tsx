@@ -54,10 +54,10 @@ describe('Care log + reminders', () => {
   it('renders all four tasks with cadence hints and Log buttons', async () => {
     eventsMock.mockResolvedValue({ count: 0, events: [] })
     render(<Harness />)
-    for (const label of ['Brush his hair', 'Nail trim', 'Playtime', 'Pets']) {
+    for (const label of ['Brush his hair', 'Nail trim', 'Playtime', 'Pets', 'Water filter']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
-    expect(screen.getAllByRole('button', { name: /^Log:/ })).toHaveLength(4)
+    expect(screen.getAllByRole('button', { name: /^Log:/ })).toHaveLength(5)
     expect(screen.getByText(/3\+ a day/)).toBeInTheDocument()
   })
 

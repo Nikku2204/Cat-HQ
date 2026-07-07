@@ -268,7 +268,9 @@ insights.careStatuses. (4) A "Needs you" reminders card combines due care
 (evening-gated, non-naggy) with device needs (litter low/drawer/food/jam/
 offline, plain voice). Diary gains a Care filter chip + friendly care rows.
 In-app only for now — PUSH stays M8 (needs the HTTPS service worker).
-Frontend 241 tests; precache 281 KiB; smoke: 5 cards + care checks.*
+Fifth task added same session: 💧 water filter, every 2 weeks (interval
+rule shared with nails). Backend 295 / frontend 242 tests; precache 281
+KiB; smoke: 5 cards + five care rows.*
 
 *Food Machine card 2026-07-06 late (owner): feeder card renamed "Food
 Machine" and given the litter card's ring treatment — owner's photo (Chutku

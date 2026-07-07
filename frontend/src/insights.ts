@@ -744,7 +744,7 @@ export function homeMood(opts: {
 // The recurring care no device can see, logged by the owner via POST /care.
 // Cadence rules live here (pure + LA-bucketed); the backend just stores rows.
 
-export type CareTaskKey = 'brush' | 'nails' | 'play' | 'pet'
+export type CareTaskKey = 'brush' | 'nails' | 'play' | 'pet' | 'water'
 
 export interface CareTaskDef {
   key: CareTaskKey
@@ -759,9 +759,16 @@ export const CARE_TASKS: CareTaskDef[] = [
   { key: 'nails', label: 'Nail trim', emoji: '✂️', cadence: 'monthly' },
   { key: 'play', label: 'Playtime', emoji: '🧶', cadence: 'every evening' },
   { key: 'pet', label: 'Pets', emoji: '💛', cadence: '3+ a day' },
+  { key: 'water', label: 'Water filter', emoji: '💧', cadence: 'every 2 weeks' },
 ]
 
 const NAILS_DUE_DAYS = 30
+const WATER_DUE_DAYS = 14
+// interval (log-to-log) tasks share the never-logged-is-neutral rule
+const INTERVAL_DAYS: Partial<Record<CareTaskKey, number>> = {
+  nails: NAILS_DUE_DAYS,
+  water: WATER_DUE_DAYS,
+}
 const PET_TARGET = 3
 const PLAY_NUDGE_HOUR = 17 // evening task — only nag in the evening
 const PET_NUDGE_HOUR = 16 // behind on pets only counts from late afternoon
@@ -807,11 +814,15 @@ export function careStatuses(events: EventOut[], now: TimeInput): CareStatus[] {
         due = !loggedToday
         break
       case 'nails':
-        // Monthly. Never-logged = unknown, not overdue (cold-start honesty):
-        // the cycle starts at the first logged trim.
-        done = lastMs != null && nowMs - lastMs <= NAILS_DUE_DAYS * 86_400_000
+      case 'water': {
+        // Interval tasks (monthly trim / 2-week filter). Never-logged =
+        // unknown, not overdue (cold-start honesty): the cycle starts at the
+        // first logged one.
+        const windowMs = INTERVAL_DAYS[def.key]! * 86_400_000
+        done = lastMs != null && nowMs - lastMs <= windowMs
         due = lastMs != null && !done
         break
+      }
       case 'play':
         done = loggedToday
         due = !loggedToday && hour >= PLAY_NUDGE_HOUR
@@ -882,9 +893,14 @@ export function careReminders(statuses: CareStatus[], now: TimeInput): Reminder[
         text: `Pets: ${s.countToday} of ${PET_TARGET} today`,
         kind: 'care',
       })
-    } else if (s.key === 'nails' && s.lastMs != null) {
+    } else if ((s.key === 'nails' || s.key === 'water') && s.lastMs != null) {
       const days = Math.floor((nowMs - s.lastMs) / 86_400_000)
-      out.push({ icon: def.emoji, text: `Nail trim — ${days}d since the last one`, kind: 'care' })
+      const what = s.key === 'nails' ? 'Nail trim' : 'Water filter change'
+      out.push({
+        icon: def.emoji,
+        text: `${what} — ${days}d since the last one`,
+        kind: 'care',
+      })
     } else if (s.key === 'play') {
       out.push({ icon: def.emoji, text: 'Evening playtime', kind: 'care' })
     } else {

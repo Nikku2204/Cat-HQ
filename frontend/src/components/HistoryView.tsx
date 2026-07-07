@@ -64,6 +64,7 @@ function describe(e: EventOut): { icon: string; text: string } {
         nails: { icon: '✂️', text: 'Trimmed his nails' },
         play: { icon: '🧶', text: 'Playtime!' },
         pet: { icon: '💛', text: 'Pets and cuddles' },
+        water: { icon: '💧', text: 'Changed the water filter' },
       }
       return CARE_TEXT[s('task')] ?? { icon: '💛', text: `Care: ${s('task')}` }
     }

@@ -85,7 +85,7 @@ const check = (ok, name) => {
   // reminders + care log (owner request) — READ-ONLY: never press Log
   check(await page.locator('.rem-card').isVisible(), 'reminders card renders')
   const careRows = await page.locator('.care-row').count()
-  check(careRows === 4, `care log lists four tasks (${careRows})`)
+  check(careRows === 5, `care log lists five tasks (${careRows})`)
 
   // litter card v2: status ring + drawer gauge + litter tube + presence
   const ringMode = await page.locator('.ring').first().getAttribute('data-mode')

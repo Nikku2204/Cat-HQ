@@ -137,9 +137,15 @@ function statusText(s: CareStatus): { text: string; cls: string } {
       cls: 'ok',
     }
   }
-  if (s.key === 'nails') {
+  if (s.key === 'nails' || s.key === 'water') {
     return s.lastMs == null
-      ? { text: 'log his first trim to start the clock', cls: 'mut' }
+      ? {
+          text:
+            s.key === 'nails'
+              ? 'log his first trim to start the clock'
+              : 'log a change to start the clock',
+          cls: 'mut',
+        }
       : {
           text: `last ${relTime(new Date(s.lastMs).toISOString())}`,
           cls: 'warn',

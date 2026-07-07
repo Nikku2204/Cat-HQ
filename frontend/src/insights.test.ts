@@ -614,6 +614,23 @@ describe('care log — cadence statuses + reminders (owner tasks)', () => {
     expect(overdue).toMatchObject({ due: true, done: false })
   })
 
+  it('water filter: 2-week interval, never-logged neutral', () => {
+    const never = careStatuses([], NOON).find((s) => s.key === 'water')!
+    expect(never).toMatchObject({ due: false, done: false, lastMs: null })
+    const fresh = careStatuses([care('water', NOON - 5 * DAY)], NOON).find(
+      (s) => s.key === 'water',
+    )!
+    expect(fresh.done).toBe(true)
+    const overdue = careStatuses([care('water', NOON - 16 * DAY)], NOON).find(
+      (s) => s.key === 'water',
+    )!
+    expect(overdue).toMatchObject({ due: true, done: false })
+    const rem = careReminders(careStatuses([care('water', NOON - 16 * DAY)], NOON), NOON)
+    expect(rem.map((r) => r.text).join(' | ')).toContain(
+      'Water filter change — 16d since the last one',
+    )
+  })
+
   it('play: not nagged at midday, due in the evening, done once logged', () => {
     expect(careStatuses([], NOON).find((s) => s.key === 'play')!.due).toBe(false)
     expect(careStatuses([], EVENING).find((s) => s.key === 'play')!.due).toBe(true)
