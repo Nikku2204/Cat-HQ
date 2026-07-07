@@ -251,8 +251,10 @@ theme-color updated. Den vitals tiles are now BUTTONS that tap through to
 their story: Weight → scrolls to Weight Watch; Visits/Meals/Care → the Diary
 pre-filtered (new `initialFilter` prop on HistoryView, wired via App; the Diary
 tab itself always opens on All). Chevron affordance + press squish (motion-
-gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; rebuild
-awaits owner approval.*
+gated). Frontend 199 tests; precache 263 KiB. Screenshots posted; owner said
+"deploy the latest" → DEPLOYED 2026-07-06 evening: all four adapters ok,
+theme-color #171019 + rose CSS/favicon confirmed served, read-only smoke
+26/26 vs the live container.*
 
 *Accuracy pass 2026-07-06 evening (day-1 real data review): found and fixed a
 visit double-count — the Whisker cloud updates `pet_weight_lbs` LAZILY (change
